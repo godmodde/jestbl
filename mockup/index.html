@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Видно — сайт</title>
+<script>
+  // Макет первого экрана заменён живым сайтом: адрес порта 3002 ведёт на тот же адрес с портом 3003.
+  // Через прокси Coder порт стоит в начале имени хоста (3002--…), локально — в самом адресе.
+  const u = new URL(location.href);
+  if (/^3002--/.test(u.hostname)) u.hostname = u.hostname.replace(/^3002--/, "3003--"); else u.port = "3003";
+  u.pathname = "/"; u.search = ""; u.hash = "";
+  location.replace(u.href);
+</script>
+<style>body{margin:0;padding:40px 20px;background:#F5F1EA;color:#1D1C1A;font:17px/1.5 system-ui,sans-serif}a{color:#1F5E4B}</style>
+</head>
+<body>
+<p>Открываем сайт… Если не открылся — <a href="https://3003--main--novi--albert.devgreenboxweb.ru/">перейти на сайт</a>.</p>
+<p>Старый статичный макет первого экрана (этап согласования) — <a href="mockup-v1.html">mockup-v1.html</a>, трекер — <a href="tracker.html">tracker.html</a>.</p>
+</body>
+</html>

@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-10T00:00:00Z",
+  "title": "Design System: «Видно», школа РЖЯ",
+  "source": "docs/DESIGN.md (без YAML-фронтматтера: токены ниже сняты с @theme в app/globals.css)",
+  "tokens": {
+    "colors": {
+      "paper": "#F5F1EA",
+      "shade": "#ECE5D9",
+      "surface": "#FBF9F5",
+      "ink": "#1D1C1A",
+      "ink-2": "#4E4A43",
+      "muted": "#67635B",
+      "line": "#D9D1C3",
+      "frame": "#DED6C8",
+      "track": "#E9E3D8",
+      "accent": "#1F5E4B",
+      "accent-strong": "#184C3D",
+      "accent-soft": "#E6EEE9",
+      "stage": "#E8EFEA",
+      "stage-deep": "#D9E6DE",
+      "warn-soft": "#F3E9D7",
+      "star": "#B07A12"
+    },
+    "typography": {
+      "display": { "fontFamily": "Geologica, system-ui, sans-serif", "fontSize": "clamp(44px, 6.2vw, 96px)", "fontWeight": 600, "lineHeight": 0.96, "letterSpacing": "-0.035em" },
+      "headline": { "fontFamily": "Geologica, system-ui, sans-serif", "fontSize": "clamp(34px, 4.4vw, 60px)", "fontWeight": 600, "lineHeight": 1.02, "letterSpacing": "-0.035em" },
+      "gloss": { "fontFamily": "Geologica, system-ui, sans-serif", "fontVariation": "\"CRSV\" 1, \"slnt\" -10", "fontSize": "28px", "fontWeight": 500, "lineHeight": 1 },
+      "body": { "fontFamily": "Onest, system-ui, sans-serif", "fontSize": "16px", "fontWeight": 400, "lineHeight": 1.5 },
+      "label": { "fontFamily": "Onest, system-ui, sans-serif", "fontSize": "15px", "fontWeight": 500 }
+    },
+    "rounded": { "frame": "14px", "kid-frame": "20px", "slot": "22px", "panel": "28px", "pill": "9999px" },
+    "spacing": { "gutter-desktop": "100px", "gutter-tablet": "40px", "gutter-mobile": "20px", "card-pad": "16px", "card-gap": "24px" }
+  },
+  "extensions": {
+    "colorMeta": {
+      "paper": { "role": "neutral", "displayName": "Тёплая бумага", "canonical": "#F5F1EA" },
+      "shade": { "role": "neutral", "displayName": "Тёмная бумага (чётные полосы главной)", "canonical": "#ECE5D9" },
+      "surface": { "role": "neutral", "displayName": "Поверхность: первый экран, карточки, разворот альбома", "canonical": "#FBF9F5" },
+      "ink": { "role": "neutral", "displayName": "Тушь: текст, декор, фокус, активная навигация", "canonical": "#1D1C1A" },
+      "ink-2": { "role": "neutral", "displayName": "Второй текст: пояснения", "canonical": "#4E4A43" },
+      "muted": { "role": "neutral", "displayName": "Вторичный текст", "canonical": "#67635B" },
+      "line": { "role": "neutral", "displayName": "Линии и пустые гнёзда", "canonical": "#D9D1C3" },
+      "frame": { "role": "neutral", "displayName": "Фон пустого кадра видео", "canonical": "#DED6C8" },
+      "track": { "role": "neutral", "displayName": "Дорожка: наведение, неактивный чип", "canonical": "#E9E3D8" },
+      "accent": { "role": "primary", "displayName": "Глубокий зелёный: только главные действия и состояния", "canonical": "#1F5E4B" },
+      "accent-strong": { "role": "primary", "displayName": "Зелёный при наведении", "canonical": "#184C3D" },
+      "accent-soft": { "role": "primary", "displayName": "Мягкий зелёный: верный ответ, следующее гнездо", "canonical": "#E6EEE9" },
+      "stage": { "role": "secondary", "displayName": "Шалфей: подложка видео (верх)", "canonical": "#E8EFEA" },
+      "stage-deep": { "role": "secondary", "displayName": "Шалфей: подложка видео (низ)", "canonical": "#D9E6DE" },
+      "warn-soft": { "role": "tertiary", "displayName": "Тёплая подложка: бейдж «Черновик»", "canonical": "#F3E9D7" },
+      "star": { "role": "tertiary", "displayName": "Звезда: только звёзды детского экзамена", "canonical": "#B07A12" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "H1 первого экрана", "purpose": "Geologica 600, до 96 px, три строки на десктопе." },
+      "headline": { "displayName": "Заголовок секции", "purpose": "SectionHead главной, без надзаголовка." },
+      "gloss": { "displayName": "Голос жеста", "purpose": "Курсив Geologica: подпись жеста и «жеста.» в H1." },
+      "body": { "displayName": "Текст", "purpose": "Onest 400–600." },
+      "label": { "displayName": "Интерфейс", "purpose": "Навигация, подписи, кнопки плеера." }
+    },
+    "shadows": [
+      { "name": "frame-soft", "value": "0 30px 60px -36px rgba(29,28,26,0.45)", "purpose": "Видео в белой рамке 8 px и заглушка преподавателя." },
+      { "name": "spread", "value": "0 30px 60px -44px rgba(29,28,26,0.45)", "purpose": "Разворот детского альбома." },
+      { "name": "tab-current", "value": "0 12px 28px -20px rgba(29,28,26,0.5)", "purpose": "Текущая тема-закладка альбома." },
+      { "name": "sticker", "value": "drop-shadow(±3px 0 0 #fff) ×4 + drop-shadow(0 8px 10px rgb(29 28 26 / 0.2))", "purpose": "Белая вырубка и тень наклейки (.sticker, filter)." }
+    ],
+    "motion": [
+      { "name": "ease-out-soft", "value": "cubic-bezier(.2, .7, .2, 1)", "purpose": "Появления и состояния; UI 150–250 мс." },
+      { "name": "sticker-land", "value": "0.7s cubic-bezier(.2, .9, .25, 1.15) 0.25s", "purpose": "Наклейка вклеивается в гнездо." },
+      { "name": "nudge", "value": "0.45s ease-out-soft", "purpose": "Спокойное покачивание неверного ответа." },
+      { "name": "ring", "value": "1.8s ease-out", "purpose": "Рамка видео дважды вспыхивает при ошибке; без анимации скрыта." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "<768px" },
+      { "name": "tablet", "value": "768–1279px" },
+      { "name": "desktop", "value": "≥1280px" },
+      { "name": "wide", "value": "≥1536px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Основная кнопка",
+      "kind": "button",
+      "description": "Главное действие экрана: «Начать первый урок», «В альбом».",
+      "html": "<a class=\"ds-btn-primary\" href=\"#\">Начать первый урок →</a>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 28px; border-radius: 9999px; background: var(--color-accent, #1F5E4B); color: #fff; font: 600 17px/1 Onest, system-ui, sans-serif; text-decoration: none; transition: background .2s; } .ds-btn-primary:hover { background: var(--color-accent-strong, #184C3D); } .ds-btn-primary:focus-visible { outline: 3px solid #1D1C1A; outline-offset: 3px; }"
+    },
+    {
+      "name": "Контурная кнопка",
+      "kind": "button",
+      "description": "Второе действие: контур тушью, при наведении — заливка тушью.",
+      "html": "<button class=\"ds-btn-ghost\">Ещё раз</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border-radius: 9999px; border: 1.5px solid #1D1C1A; background: transparent; color: #1D1C1A; font: 600 16px/1 Onest, system-ui, sans-serif; transition: background .2s, color .2s; } .ds-btn-ghost:hover { background: #1D1C1A; color: #F5F1EA; } .ds-btn-ghost:focus-visible { outline: 3px solid #1D1C1A; outline-offset: 3px; }"
+    },
+    {
+      "name": "Навигация платформы",
+      "kind": "nav",
+      "description": "4 пункта; активный — заливка тушью.",
+      "html": "<nav class=\"ds-nav\"><a aria-current=\"page\">Учиться</a><a>Словарь</a><a>Повторение <span class=\"ds-count\">3</span></a><a>Прогресс</a></nav>",
+      "css": ".ds-nav { display: flex; gap: 4px; font: 500 15px Onest, system-ui, sans-serif; } .ds-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 9999px; color: #1D1C1A; cursor: pointer; transition: background .2s; } .ds-nav a:hover { background: #E9E3D8; } .ds-nav a[aria-current=page] { background: #1D1C1A; color: #F5F1EA; } .ds-count { margin-left: 6px; min-width: 24px; padding: 0 6px; border-radius: 9999px; background: #1F5E4B; color: #fff; font-size: 12px; font-weight: 600; text-align: center; }"
+    },
+    {
+      "name": "Видео в белой рамке",
+      "kind": "card",
+      "description": "Портретный кадр 5:6 на шалфейной подложке; управление под кадром.",
+      "html": "<div class=\"ds-stage\"><div class=\"ds-frame\"></div><div class=\"ds-row\"><span class=\"ds-gloss\">Здравствуй</span><button class=\"ds-round\">0,5×</button></div></div>",
+      "css": ".ds-stage { padding: 24px; border-radius: 28px; background: linear-gradient(#E8EFEA, #D9E6DE); display: grid; gap: 14px; max-width: 320px; } .ds-frame { aspect-ratio: 5/6; border-radius: 14px; background: #DED6C8; box-shadow: 0 0 0 8px #fff, 0 30px 60px -36px rgba(29,28,26,.45); } .ds-row { display: flex; justify-content: space-between; align-items: center; } .ds-gloss { font: 500 28px/1 Geologica, system-ui, sans-serif; font-variation-settings: 'CRSV' 1, 'slnt' -10; } .ds-round { min-width: 44px; min-height: 44px; border-radius: 9999px; border: 0; background: #fff; font: 500 15px Onest, sans-serif; } .ds-round:hover { background: #FBF9F5; } .ds-round:focus-visible { outline: 3px solid #1D1C1A; outline-offset: 3px; }"
+    },
+    {
+      "name": "Гнездо альбома",
+      "kind": "custom",
+      "description": "Детский мир: пустое гнездо (пунктир линий) и следующее (пунктир акцентом, «Играть»).",
+      "html": "<div class=\"ds-slots\"><span class=\"ds-slot\"></span><a class=\"ds-slot ds-slot-next\">Играть</a></div>",
+      "css": ".ds-slots { display: grid; grid-template-columns: repeat(2, 120px); gap: 16px; } .ds-slot { aspect-ratio: 1; border-radius: 22px; border: 2px dashed #D9D1C3; display: flex; align-items: center; justify-content: center; } .ds-slot-next { border: 2.5px dashed #1F5E4B; background: #E6EEE9; color: #1F5E4B; font: 600 15px Onest, sans-serif; cursor: pointer; transition: background .2s; } .ds-slot-next:hover { background: #D9E6DE; } .ds-slot-next:focus-visible { outline: 3px solid #1D1C1A; outline-offset: 3px; }"
+    },
+    {
+      "name": "Кнопка «Медленнее» (детская)",
+      "kind": "button",
+      "description": "Круг 56 px со значком черепахи под кадром; включённая — заливка тушью.",
+      "html": "<button class=\"ds-turtle\" aria-pressed=\"false\" aria-label=\"Медленнее\"><svg width=\"26\" height=\"26\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 15a7 6 0 0 1 14 0z\"/><path d=\"M18 13.5h2.2a1.8 1.8 0 0 0 0-3.6H19\"/><path d=\"M6 15v2.5M15 15v2.5\"/><path d=\"M8 10.5l3 4.5 3-4.5\"/></svg></button>",
+      "css": ".ds-turtle { display: grid; place-content: center; width: 56px; height: 56px; border-radius: 9999px; border: 1.5px solid #D9D1C3; background: #FBF9F5; color: #1D1C1A; transition: border-color .2s, background .2s; } .ds-turtle:hover { border-color: #1D1C1A; } .ds-turtle[aria-pressed=true] { background: #1D1C1A; border-color: #1D1C1A; color: #F5F1EA; } .ds-turtle:focus-visible { outline: 3px solid #1D1C1A; outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Тёплая бумага",
+    "overview": "Итоговое ощущение (ТЗ): «Я вижу жест. Я понимаю, что он означает. Я могу попробовать. Если не получилось — посмотрю ещё раз. Я знаю, что делать дальше». Детский мир — расширение того же мира: альбом наклеек, где награда и есть выученное.",
+    "keyCharacteristics": [
+      "Бумага #F5F1EA и тёмная бумага #ECE5D9 полосами на главной; платформа — один фон",
+      "Geologica 600 + курсив «голос жеста» + Onest",
+      "Один зелёный акцент только для главных действий и состояний; декор — тушью",
+      "Видео — главное: руки, лицо и корпус открыты, управление под кадром",
+      "Поля 100 / 40 / 20 px на любой ширине экрана",
+      "Детский мир: развороты, гнёзда, наклейки с белой вырубкой, звёзды тёплым жёлтым, цели от 56 px"
+    ],
+    "rules": [
+      { "name": "Правило одного надзаголовка", "body": "Надзаголовков не ставим. Единственное закреплённое заказчиком исключение — «Русский жестовый язык» над H1 первого экрана; на другие экраны не переносится.", "section": "typography" },
+      { "name": "Правило открытого кадра", "body": "На руки, лицо и корпус ничего не накладываем; поверх кадра допустим только угол, где фон.", "section": "elevation" },
+      { "name": "Правило портретного кадра", "body": "Крупное видео человека — 5:6 с object-position 79–87 %, титр демо-ролика за краем; CaptionMask только в заданиях 16:9.", "section": "layout" },
+      { "name": "Правило внутреннего и внешнего", "body": "Внутренний отступ всегда меньше внешнего (карточки: поле 16, промежуток 24).", "section": "layout" },
+      { "name": "Правило звезды", "body": "Цвет #B07A12 — только звёзды детского экзамена.", "section": "colors" },
+      { "name": "Правило ошибки без слов", "body": "Ошибка не красная: ответ гаснет и покачивается, жест повторяется на 0,5×, рамка мягко вспыхивает.", "section": "colors" }
+    ],
+    "dos": [
+      "Do держать акцент на главном действии экрана",
+      "Do ставить управление видео под кадром",
+      "Do делать игровые цели детского мира от 56 px"
+    ],
+    "donts": [
+      "Don't ставить надзаголовки над заголовками (кроме закреплённого hero)",
+      "Don't красить ошибки красным",
+      "Don't использовать звёздный жёлтый вне звёзд"
+    ]
+  }
+}

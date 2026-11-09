@@ -1,0 +1,201 @@
+@import "tailwindcss";
+
+/* Токены «Видно» (docs/DESIGN.md, п. 6). Палитра «Тёплая бумага», одна тема. */
+@theme {
+  --color-paper: #F5F1EA;
+  --color-shade: #ECE5D9;
+  --color-surface: #FBF9F5;
+  --color-ink: #1D1C1A;
+  --color-ink-2: #4E4A43;
+  --color-muted: #67635B;
+  --color-line: #D9D1C3;
+  --color-frame: #DED6C8;
+  --color-track: #E9E3D8;
+  --color-accent: #1F5E4B;
+  --color-accent-strong: #184C3D;
+  --color-accent-soft: #E6EEE9;
+  /* Подложка видео на первом экране: мягкий шалфей от светлого к чуть глубже, в тон акценту. */
+  --color-stage: #E8EFEA;
+  --color-stage-deep: #D9E6DE;
+  --color-warn-soft: #F3E9D7;
+  /* Звёзды детских экзаменов — только для них. Контраст значка на бумаге 3,3:1. */
+  --color-star: #B07A12;
+
+  --font-display: var(--font-geologica), system-ui, sans-serif;
+  --font-sans: var(--font-onest), system-ui, sans-serif;
+
+  --ease-out-soft: cubic-bezier(.2, .7, .2, 1);
+}
+
+:root {
+  --gutter: 100px;
+  color-scheme: light;
+}
+@media (max-width: 1279px) { :root { --gutter: 40px; } }
+@media (max-width: 767px)  { :root { --gutter: 20px; } }
+
+html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; scrollbar-color: #CBC2B3 var(--color-paper); }
+/* geometricPrecision убирает лишний просвет после «т» в Onest на 15–17 px (растеризация Chromium/Linux). */
+body { background: var(--color-paper); color: var(--color-ink); font-family: var(--font-sans); font-size: 16px; line-height: 1.5; text-rendering: geometricPrecision; }
+:focus-visible { outline: 3px solid var(--color-ink); outline-offset: 3px; border-radius: 4px; }
+[hidden] { display: none !important; }
+h1, h2, h3 { text-wrap: balance; }
+::selection { background: var(--color-accent-soft); color: var(--color-ink); }
+input, textarea { caret-color: var(--color-accent); }
+
+/* «Голос жеста» — курсив Geologica (оси CRSV и slnt): подпись жеста и слово «жеста.» в заголовке. Вес и кегль — классами на месте. */
+.type-gloss { font-family: var(--font-display); font-variation-settings: "CRSV" 1, "slnt" -10; }
+
+/* Сетка (ТЗ, п. 25): поля ровно 100 / 40 / 20 px на любой ширине экрана. Длину строк держат сами блоки (max-w в ch). */
+@utility shell {
+  width: 100%;
+  padding-inline: var(--gutter);
+}
+/* Чередование блоков главной по оттенку: чётные секции — на тёмной бумаге, во всю ширину экрана.
+   Скрытые секции (преподаватели, отзывы) не рендерятся, поэтому ритм не сбивается, когда они появятся.
+   --band — цвет текущей полосы для того, что им закрашено (кружки пути обучения поверх линии). */
+:root { --band: var(--color-paper); }
+/* Первый экран главной светлее остальной страницы; шапка над ним — того же тона, без шва. */
+body:has(main.bands) > header { background: var(--color-surface); }
+body:has(main.bands > section.bg-paper:first-child) > header { background: var(--color-paper); }
+.bands > section:nth-of-type(even) { --band: var(--color-shade); background: var(--band); }
+
+/* Во всю ширину экрана на телефоне — для видео (ТЗ, п. 30). */
+@utility bleed-mobile {
+  @media (max-width: 767px) { margin-inline: calc(-1 * var(--gutter)); border-radius: 0; }
+}
+
+/* Уголки кадра вокруг видео — мотив бренда. Тушью: зелёный оставлен главным действиям (ТЗ, п. 26). */
+.corner { position: absolute; width: 28px; height: 28px; border: 0 solid var(--color-ink); pointer-events: none; }
+.corner-tl { top: 0; left: 0; border-top-width: 1.5px; border-left-width: 1.5px; --dx: -14px; --dy: -14px; }
+.corner-tr { top: 0; right: 0; border-top-width: 1.5px; border-right-width: 1.5px; --dx: 14px; --dy: -14px; }
+.corner-bl { bottom: 0; left: 0; border-bottom-width: 1.5px; border-left-width: 1.5px; --dx: -14px; --dy: 14px; }
+.corner-br { bottom: 0; right: 0; border-bottom-width: 1.5px; border-right-width: 1.5px; --dx: 14px; --dy: 14px; }
+
+/* Нажатие: кнопка чуть проседает под пальцем и мягко возвращается (вниз быстро, обратно плавно). */
+@utility press {
+  transition-property: color, background-color, border-color, opacity, scale, box-shadow;
+  transition-duration: .22s;
+  transition-timing-function: var(--ease-out-soft);
+  &:active:not(:disabled) { scale: .97; transition-duration: .08s; }
+}
+
+@layer components {
+  /* Кружок со стрелкой или значком: при наведении на родителя (.group) наливается тушью из центра; .is-on — то же как состояние. */
+  .ink-dot { position: relative; isolation: isolate; transition: color .25s var(--ease-out-soft), border-color .25s var(--ease-out-soft); }
+  .ink-dot::before { content: ""; position: absolute; inset: -1.5px; z-index: -1; border-radius: inherit; background: var(--color-ink); scale: 0; transition: scale .4s var(--ease-out-soft); }
+  .ink-dot.is-on, details[open] > summary .ink-dot { color: var(--color-paper); border-color: var(--color-ink); }
+  .ink-dot.is-on::before, details[open] > summary .ink-dot::before { scale: 1; }
+  @media (hover: hover) {
+    .group:hover .ink-dot, .group:hover.ink-dot { color: var(--color-paper); border-color: var(--color-ink); }
+    .group:hover .ink-dot::before, .group:hover.ink-dot::before { scale: 1; }
+  }
+
+  /* Подложка выбранного пункта переезжает к новому (вкладки «Как учимся», меню-пилюля). Положение ставит lib/use-slide-mark.ts. */
+  .slide-mark { position: absolute; top: 0; left: 0; pointer-events: none; transition: translate .45s cubic-bezier(.16, 1, .3, 1), width .45s cubic-bezier(.16, 1, .3, 1), height .45s cubic-bezier(.16, 1, .3, 1), opacity .2s; }
+}
+
+/* Движение. Всё выключается при «уменьшении движения». */
+@media (prefers-reduced-motion: no-preference) {
+  .anim-rise { animation: rise .8s var(--ease-out-soft) both; }
+  .anim-reveal { animation: reveal .9s var(--ease-out-soft) both; }
+  .anim-focus { animation: focus .9s var(--ease-out-soft) .15s both; }
+  .anim-pop { animation: pop .35s var(--ease-out-soft) both; }
+  /* Плавность (просьба заказчика 2026-10-10): якоря прокручиваются плавно; страница при переходе проявляется;
+     содержимое разделов поднимается и проявляется, когда раздел входит в окно. Анимируем содержимое, а не полосу раздела —
+     иначе между полосами мелькал бы просвет. Без анимаций (reduced motion) всё на месте сразу. */
+  html { scroll-behavior: smooth; }
+  .anim-page { animation: page-in .5s var(--ease-out-soft) both; }
+  /* Наклейка ложится в альбом: снимается с подложки, падает в гнездо и прилипает с лёгким дожимом. */
+  .sticker-land { animation: land .7s cubic-bezier(.2, .9, .25, 1.15) .25s both; }
+  /* Спокойная подсказка при ошибке: мягкое покачивание, а не тряска. */
+  .anim-nudge { animation: nudge .45s var(--ease-out-soft); }
+  /* «Как учимся», вкладки: полоска времени до смены шага; наведение и фокус — пауза. */
+  .how-timer { animation: timer 7s linear forwards; }
+  .how-tabs:hover .how-timer, .how-tabs:focus-within .how-timer { animation-play-state: paused; }
+  /* Ошибка в детской игре: рамка видео дважды мягко вспыхивает и гаснет, пока жест повторяется медленно. */
+  .anim-ring { animation: ring 1.8s ease-out both; }
+  /* Мотив движения «Видно»: новое содержимое не выезжает, а наводится в резкость — как в объективе. */
+  .anim-focus-in { animation: focus-in .5s cubic-bezier(.16, 1, .3, 1) var(--d, 0s) both; }
+  /* С играющим видео — без размытия (дорого и уводит видео с аппаратного слоя): кадр подтягивается масштабом. */
+  .anim-focus-in:has(video) { animation-name: focus-in-media; }
+  /* Задержку задаёт --d (класс [--d:…] на месте): сокращённая запись animation перебила бы animation-delay. */
+  /* Строки заголовка первого экрана наводятся по очереди. */
+  .line-in { display: inline-block; animation: line-in .9s cubic-bezier(.16, 1, .3, 1) var(--d, 0s) both; }
+  /* Счётчик и наклейка отвечают на верный ответ коротким толчком. */
+  .anim-bump { animation: bump .5s cubic-bezier(.16, 1, .3, 1); }
+  .anim-rewind { animation: rewind .6s cubic-bezier(.16, 1, .3, 1); }
+  /* Только что изученный жест в прогрессе заливается акцентом на глазах. */
+  .anim-fill { animation: fill-in .6s var(--ease-out-soft) .35s both; }
+  /* Пройденная черта буквы заливается по направлению письма. */
+  .trace-fill { animation: trace-fill .5s var(--ease-out-soft) both; }
+  /* Ответ в вопросах раскрывается по высоте, а не скачком (браузеры с ::details-content; в остальных — сразу). */
+  .faq { interpolate-size: allow-keywords; }
+  .faq::details-content { height: 0; overflow: clip; transition: height .45s cubic-bezier(.16, 1, .3, 1), content-visibility .45s allow-discrete; }
+  .faq[open]::details-content { height: auto; }
+  .faq[open] > p { animation: focus-in .5s cubic-bezier(.16, 1, .3, 1) .05s both; }
+  /* Карточка первого экрана перетекает в главное окно (View Transitions); страница вокруг не замирает. */
+  :root { view-transition-name: none; }
+  ::view-transition-group(*) { animation-duration: .6s; animation-timing-function: cubic-bezier(.16, 1, .3, 1); }
+  .delay-1 { animation-delay: .08s; }
+  .delay-2 { animation-delay: .16s; }
+  .delay-3 { animation-delay: .35s; }
+  .delay-4 { animation-delay: .4s; }
+
+  /* Появление при прокрутке — только где браузер умеет scroll-driven анимации. */
+  @supports (animation-timeline: view()) {
+    main section > * { animation: section-in linear both; animation-timeline: view(); animation-range: entry 0% entry 45%; }
+    .on-view { animation: rise linear both; animation-timeline: view(); animation-range: entry 0% entry 60%; }
+    .draw-line { animation: draw linear both; animation-timeline: view(); animation-range: entry 10% cover 45%; transform-origin: left; }
+    /* Остановки пути зажигаются, когда до них дотягивается линия (--i — номер остановки). */
+    .stop-in { animation: stop-in linear both; animation-timeline: view(); animation-range: entry 0% cover 30%; }
+    @media (min-width: 1024px) {
+      .stop-in { animation-range: entry calc(10% + var(--i) * 9%) cover calc(18% + var(--i) * 9%); }
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .press:active, .slide-mark, .ink-dot, .ink-dot::before { transition: none; }
+  .press:active:not(:disabled) { scale: 1; }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes reveal { from { opacity: 0; transform: scale(.985); } }
+@keyframes focus { from { opacity: 0; transform: translate(var(--dx), var(--dy)); } }
+@keyframes pop { from { opacity: 0; transform: translateY(6px); } }
+@keyframes page-in { from { opacity: 0; transform: translateY(10px); } }
+@keyframes section-in { from { opacity: 0; transform: translateY(28px); } }
+@keyframes land {
+  from { opacity: 0; transform: translateY(-48px) scale(1.45) rotate(-16deg); }
+  60% { opacity: 1; transform: translateY(4px) scale(.96); }
+}
+@keyframes timer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes nudge { 30% { transform: translateX(-6px); } 65% { transform: translateX(4px); } }
+/* Без анимации вспышки нет совсем: значок не должен оставаться поверх рук — сигналом служит медленный повтор. */
+.anim-ring { opacity: 0; }
+@keyframes ring { 0%, 50% { opacity: 1; } 25% { opacity: .35; } to { opacity: 0; } }
+@keyframes draw { from { transform: scaleX(0); } }
+/* --fy: 0px — внутри прокручиваемой области, чтобы сдвиг не вызывал полосу прокрутки. */
+@keyframes focus-in { from { opacity: 0; filter: blur(8px); transform: translateY(var(--fy, 8px)); } }
+@keyframes focus-in-media { from { opacity: 0; transform: translateY(var(--fy, 8px)) scale(.985); } }
+@keyframes line-in { from { opacity: 0; filter: blur(12px); transform: translateY(.18em); } }
+@keyframes bump { 40% { scale: 1.16; } }
+@keyframes rewind { from { rotate: 360deg; } }
+/* Текст светлеет, только когда заливка уже набрала тон, — в середине подпись не пропадает. */
+@keyframes fill-in { from { background-color: var(--color-track); color: var(--color-ink-2); } 50% { color: var(--color-ink-2); } 62% { color: #fff; } }
+@keyframes trace-fill { from { stroke-dashoffset: 1.05; } }
+@keyframes stop-in { from { opacity: 0; scale: .5; } }
+
+/* Наклейка детского альбома: белая вырубка по контуру картинки и мягкая тень, как у настоящей наклейки. */
+.sticker {
+  filter: drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff)
+    drop-shadow(0 8px 10px rgb(29 28 26 / 0.2));
+}
+
+/* Человек в кадре — по центру (просьба заказчика 2026-10-10). В демо-роликах surdo.media человек стоит правее центра
+   (корпус на 0,40–0,83 ширины), а слева вшит титр (до 0,41). Кадр центрируется по человеку (73,5%) и увеличивается в 1,24 раза —
+   титр уходит за левый край даже у длинных слов («Пожалуйста»), сверху срезается ~6%, снизу ~13%. Работает для портретных кадров 5:6 и 4:5.
+   ponytail: числа подобраны под демо-ролики; для своих съёмок с человеком по центру — убрать увеличение. */
+.signer { object-fit: cover; object-position: 73.5% 50%; transform: scale(1.24); transform-origin: 50% 32%; }
+/* Маленькие плитки выбора: у длинных слов («До свидания») титр шире — кадр плотнее (видимая полоса 0,46–0,82 ширины ролика). */
+.signer.signer-tight { object-position: 76% 50%; transform: scale(1.3); }
+

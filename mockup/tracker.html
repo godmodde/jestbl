@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Видно · трекер проекта</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@600&family=Onest:wght@400;500;600&display=swap">
+<style>
+  /* Одна колонка: сводка сверху, дальше группы задач. Палитра продукта, только светлая тема. */
+  :root {
+    --paper: #F5F1EA;
+    --surface: #FBF9F5;
+    --ink: #1D1C1A;
+    --muted: #67635B;
+    --line: #D9D1C3;
+    --accent: #1F5E4B;
+    --accent-soft: #E6EEE9;
+    --display: "Geologica", system-ui, sans-serif;
+    --ui: "Onest", system-ui, sans-serif;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--ui); font-size: 16px; line-height: 1.5; padding-inline: clamp(16px, 5vw, 64px); padding-block: 40px 96px; }
+  .wrap { max-width: 860px; margin-inline: auto; display: grid; gap: 40px; }
+  .eyebrow { margin: 0 0 8px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  h1 { margin: 0; font: 600 clamp(32px, 5vw, 48px)/1.05 var(--display); letter-spacing: -0.03em; text-wrap: balance; }
+  .summary { display: grid; gap: 10px; margin-top: 24px; }
+  .count { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .count b { font: 600 28px/1 var(--display); color: var(--ink); letter-spacing: -0.02em; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.3s ease-out; }
+  .now { margin: 0; font-weight: 500; }
+  .now:empty { display: none; }
+  .hint { margin: 0; font-size: 14px; color: var(--muted); }
+  .open-link { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; margin-top: 20px; padding: 0 22px; border-radius: 999px; background: var(--accent); color: #FFFFFF; font-weight: 600; text-decoration: none; }
+  .open-link:hover { background: #184C3D; }
+  .open-link:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  .filters button { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 15px var(--ui); cursor: pointer; }
+  .filters button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+  .filters button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  #groups { display: grid; gap: 40px; }
+  .group { display: grid; gap: 8px; }
+  .ghead { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .ghead-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+  .ghead h2 { margin: 0; font: 600 22px/1.2 var(--display); letter-spacing: -0.015em; }
+  .gcount { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .gnote { margin: 0; color: var(--muted); font-size: 14px; max-width: 65ch; }
+  .gbar { height: 3px; }
+
+  ul.tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .task { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 12px; border-radius: 6px; cursor: pointer; }
+  .task:hover { background: var(--surface); }
+  .task:has(input:focus-visible) { outline: 3px solid var(--ink); outline-offset: 1px; }
+  .task input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--accent); cursor: pointer; }
+  .task input:focus-visible { outline: none; }
+  .body { min-width: 0; display: grid; gap: 2px; }
+  .title { font-weight: 500; }
+  .note { font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+  .task.is-done .title { color: var(--muted); }
+  .task.is-now { background: var(--accent-soft); }
+  .tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+  .chip { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
+  .chip.you { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+  .chip.now { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
+  .state { margin: 0; color: var(--muted); }
+  @media (max-width: 520px) {
+    .task { grid-template-columns: 24px minmax(0, 1fr); }
+    .tags { grid-column: 2; justify-content: flex-start; }
+  }
+  @media (prefers-reduced-motion: reduce) { .bar span { transition: none; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <p class="eyebrow">Видно · школа РЖЯ</p>
+    <h1>Трекер проекта</h1>
+    <div class="summary">
+      <div class="count"><b id="done-count">—</b> из <span id="total-count">—</span> готово</div>
+      <div class="bar" aria-hidden="true"><span id="bar-fill"></span></div>
+      <p class="now" id="now"></p>
+      <p class="hint">Отметки сохраняются в этом браузере.</p>
+    </div>
+    <a class="open-link" href="./">
+      Открыть сайт
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+    </a>
+    <div class="filters" role="group" aria-label="Какие задачи показать">
+      <button type="button" data-filter="all" aria-pressed="true">Все</button>
+      <button type="button" data-filter="open" aria-pressed="false">Открытые</button>
+      <button type="button" data-filter="you" aria-pressed="false">Ваши задачи</button>
+    </div>
+  </header>
+  <div id="groups"></div>
+</main>
+
+<script>
+// Задачи: done — состояние по умолчанию из файла; отметки в браузере его перекрывают.
+const TASKS = [
+ {
+  "id": "st01",
+  "done": true,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "note": "Все решения — в docs/CHECKPOINT.md",
+  "order": 1,
+  "owner": "claude",
+  "title": "Интервью: сбор требований"
+ },
+ {
+  "id": "st02",
+  "done": true,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "order": 2,
+  "owner": "claude",
+  "title": "Анализ: источники видео, домены, словарь surdo.media"
+ },
+ {
+  "id": "st03",
+  "done": true,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "note": "docs/DESIGN.md",
+  "order": 3,
+  "owner": "claude",
+  "title": "UX-структура и карта страниц"
+ },
+ {
+  "id": "st04",
+  "done": true,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "order": 4,
+  "owner": "claude",
+  "title": "Макет первого экрана: десктоп и телефон",
+  "note": "Макет: https://3002--main--novi--albert.devgreenboxweb.ru/ · холст «Видно — первый экран» с картой страниц"
+ },
+ {
+  "id": "st05",
+  "done": true,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "order": 5,
+  "owner": "you",
+  "title": "Согласовать карту страниц, логику урока и макет",
+  "note": "Логика урока утверждена: по жесту + практика в конце; затем «приступай к работе»"
+ },
+ {
+  "id": "st06",
+  "done": true,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "order": 6,
+  "owner": "claude",
+  "title": "Каркас: Next.js, Postgres в Docker, миграции, загрузка контента",
+  "note": "Next.js 16, Postgres 15 в Docker (порт 5433), миграции и pnpm db:seed — см. README.md"
+ },
+ {
+  "id": "st07",
+  "done": true,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "order": 7,
+  "owner": "claude",
+  "title": "UI-система: цвета, шрифты, базовые компоненты"
+ },
+ {
+  "id": "st08",
+  "done": true,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "order": 8,
+  "owner": "claude",
+  "title": "Главная страница",
+  "note": "Сайт: https://3003--main--novi--albert.devgreenboxweb.ru/"
+ },
+ {
+  "id": "st09",
+  "done": false,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "order": 9,
+  "owner": "you",
+  "title": "Посмотреть главную и дать правки",
+  "note": "Откройте https://3003--main--novi--albert.devgreenboxweb.ru/ — главная со всеми секциями ТЗ"
+ },
+ {
+  "id": "st10",
+  "done": true,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "order": 10,
+  "owner": "claude",
+  "title": "Платформа: обучение, урок, словарь, повторение",
+  "note": "Обучение /learn, урок, словарь /dictionary, повторение /review"
+ },
+ {
+  "id": "st11",
+  "done": false,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "order": 11,
+  "owner": "you",
+  "title": "Посмотреть платформу и дать правки",
+  "note": "https://3003--main--novi--albert.devgreenboxweb.ru/learn — пройдите первый урок"
+ },
+ {
+  "id": "st12",
+  "done": true,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "order": 12,
+  "owner": "claude",
+  "title": "Тесты, документация, инструкция по хостингу",
+  "note": "Автотесты Playwright по п. 32 (8 прогонов), README.md с запуском и публикацией"
+ },
+ {
+  "id": "st13",
+  "done": true,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "note": "По пунктам — docs/tz-check.md. Секция 07 — на настоящих компонентах, секция 10 — по вашему решению без изменений",
+  "order": 13,
+  "owner": "claude",
+  "title": "Сверка с CLAUDE.md и поля 100 px"
+ },
+ {
+  "id": "st14",
+  "done": true,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "order": 14,
+  "owner": "claude",
+  "title": "Новое ТЗ, этап 1: три направления",
+  "note": "Алфавит (обводка, камера), взрослым (категории, практика, экзамены), детям (альбом наклеек, 5 игр, звёзды), главная из 9 секций. Сверка — docs/tz-check.md"
+ },
+ {
+  "id": "st15",
+  "done": false,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "order": 15,
+  "owner": "you",
+  "title": "Посмотреть три направления и дать правки",
+  "note": "https://3003--main--novi--albert.devgreenboxweb.ru/learn — алфавит, взрослым, детям; камеру проверить на своей руке"
+ },
+ {
+  "id": "st16",
+  "done": false,
+  "group": "stages",
+  "groupNote": "Порядок работы из CLAUDE.md: интервью → анализ → структура → макет → разработка → передача.",
+  "groupOrder": 1,
+  "groupTitle": "Этапы проекта",
+  "order": 16,
+  "owner": "claude",
+  "title": "Этап 2: рекомендации, режим на время, рейтинг, кабинет",
+  "note": "После правок по этапу 1"
+ },
+ {
+  "id": "sc01",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 1,
+  "owner": "claude",
+  "title": "Главная с демонстрацией продукта"
+ },
+ {
+  "id": "sc02",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 2,
+  "owner": "claude",
+  "title": "Главный экран обучения: продолжить, повторить, прогресс"
+ },
+ {
+  "id": "sc03",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 3,
+  "owner": "claude",
+  "title": "Урок: Смотрим → Разбираем → Пробуем"
+ },
+ {
+  "id": "sc04",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 4,
+  "owner": "claude",
+  "title": "Видео с повтором и скоростью 0,5 / 0,75 / 1×"
+ },
+ {
+  "id": "sc05",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 5,
+  "owner": "claude",
+  "title": "Обучающие карточки жестов"
+ },
+ {
+  "id": "sc06",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 6,
+  "owner": "claude",
+  "title": "Задание «Узнать жест по видео»"
+ },
+ {
+  "id": "sc07",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 7,
+  "owner": "claude",
+  "title": "Задание «Найти видео по значению»"
+ },
+ {
+  "id": "sc08",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 8,
+  "owner": "claude",
+  "title": "Задание «Повторить карточку» с самооценкой"
+ },
+ {
+  "id": "sc09",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 9,
+  "owner": "claude",
+  "title": "Обратная связь на ответы — спокойная, без «экзамена»"
+ },
+ {
+  "id": "sc10",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 10,
+  "owner": "claude",
+  "title": "Словарь с поиском и категориями"
+ },
+ {
+  "id": "sc11",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 11,
+  "owner": "claude",
+  "title": "Избранное"
+ },
+ {
+  "id": "sc12",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 12,
+  "owner": "claude",
+  "title": "Интервальное повторение"
+ },
+ {
+  "id": "sc13",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 13,
+  "owner": "claude",
+  "title": "Сохранение прогресса в базе без регистрации"
+ },
+ {
+  "id": "sc14",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 14,
+  "owner": "claude",
+  "title": "Полноценная мобильная версия"
+ },
+ {
+  "id": "sc15",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 15,
+  "owner": "claude",
+  "title": "API /api/v1 для будущего приложения"
+ },
+ {
+  "id": "sc16",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "note": "87 жестов; «Как выполняется» — у 25 из 26 жестов уроков, по кадрам видео, на проверку носителю РЖЯ",
+  "order": 16,
+  "owner": "claude",
+  "title": "Контент: 4 урока, 26 жестов и ещё ~55 в словаре"
+ },
+ {
+  "id": "sc17",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 17,
+  "owner": "claude",
+  "title": "Яндекс Метрика и плашка о cookie",
+  "note": "Подключится, когда будет номер счётчика (YM_ID)"
+ },
+ {
+  "id": "sc18",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 18,
+  "owner": "claude",
+  "title": "Политика конфиденциальности и страница о cookie (шаблон)"
+ },
+ {
+  "id": "sc19",
+  "done": true,
+  "group": "scope",
+  "groupNote": "ТЗ, п. 31, и решения интервью. Каждая заметная кнопка должна работать.",
+  "groupOrder": 2,
+  "groupTitle": "Объём первой версии",
+  "order": 19,
+  "owner": "claude",
+  "title": "ТЗ на съёмку собственных видео",
+  "note": "docs/video-brief.md"
+ },
+ {
+  "id": "ch01",
+  "done": true,
+  "group": "checks",
+  "groupNote": "ТЗ, п. 32: человек без подсказок может сделать всё ниже. Сценарии 1–9 покрою автотестами, проверку с людьми проводите вы.",
+  "groupOrder": 3,
+  "groupTitle": "Проверка перед сдачей",
+  "order": 1,
+  "owner": "claude",
+  "title": "Найти и открыть первый урок"
+ },
+ {
+  "id": "ch02",
+  "done": true,
+  "group": "checks",
+  "groupNote": "ТЗ, п. 32: человек без подсказок может сделать всё ниже. Сценарии 1–9 покрою автотестами, проверку с людьми проводите вы.",
+  "groupOrder": 3,
+  "groupTitle": "Проверка перед сдачей",
+  "order": 2,
+  "owner": "claude",
+  "title": "Понять, как пересмотреть видео"
+ },
+ {
+  "id": "ch03",
+  "done": true,
+  "group": "checks",
+  "groupNote": "ТЗ, п. 32: человек без подсказок может сделать всё ниже. Сценарии 1–9 покрою автотестами, проверку с людьми проводите вы.",
+  "groupOrder": 3,
+  "groupTitle": "Проверка перед сдачей",
+  "order": 3,
+  "owner": "claude",
+  "title": "Разобраться в карточке жеста"
+ },
+ {
+  "id": "ch04",
+  "done": true,
+  "group": "checks",
+  "groupNote": "ТЗ, п. 32: человек без подсказок может сделать всё ниже. Сценарии 1–9 покрою автотестами, проверку с людьми проводите вы.",
+  "groupOrder": 3,
+  "groupTitle": "Проверка перед сдачей",
+  "order": 4,
+  "owner": "claude",
+  "title": "Выполнить упражнение"
+ },
+ {
+  "id": "ch05",
+  "done": true,
+  "group": "checks",
+  "groupNote": "ТЗ, п. 32: человек без подсказок может сделать всё ниже. Сценарии 1–9 покрою автотестами, проверку с людьми проводите вы.",
+  "groupOrder": 3,
+  "groupTitle": "Проверка перед сдачей",
+  "order": 5,
+  "owner": "claude",
+  "title": "Понять результат и исправить ошибку"
+ },
+ {
+  "id": "ch06",
+  "done": true,
+  "group": "checks",
+  "groupNote": "ТЗ, п. 32: человек без подсказок может сделать всё ниже. Сценарии 1–9 покрою автотестами, проверку с людьми проводите вы.",
+  "groupOrder": 3,
+  "groupTitle": "Проверка перед сдачей",
+  "order": 6,
+  "owner": "claude",
+  "title": "Добавить жест в избранное"
+ },
+ {
+  "id": "ch07",
+  "done": true,
+  "group": "checks",
+  "groupNote": "ТЗ, п. 32: человек без подсказок может сделать всё ниже. Сценарии 1–9 покрою автотестами, проверку с людьми проводите вы.",
+  "groupOrder": 3,
+  "groupTitle": "Проверка перед сдачей",
+  "order": 7,
+  "owner": "claude",
+  "title": "Найти этот жест в словаре"
+ },
+ {
+  "id": "ch08",
+  "done": true,
+  "group": "checks",
+  "groupNote": "ТЗ, п. 32: человек без подсказок может сделать всё ниже. Сценарии 1–9 покрою автотестами, проверку с людьми проводите вы.",
+  "groupOrder": 3,
+  "groupTitle": "Проверка перед сдачей",
+  "order": 8,
+  "owner": "claude",
+  "title": "Вернуться к нему через повторение"
+ },
+ {
+  "id": "ch09",
+  "done": true,
+  "group": "checks",
+  "groupNote": "ТЗ, п. 32: человек без подсказок может сделать всё ниже. Сценарии 1–9 покрою автотестами, проверку с людьми проводите вы.",
+  "groupOrder": 3,
+  "groupTitle": "Проверка перед сдачей",
+  "order": 9,
+  "owner": "claude",
+  "title": "Продолжить обучение с места, где остановился"
+ },
+ {
+  "id": "ch10",
+  "done": true,
+  "group": "checks",
+  "groupNote": "ТЗ, п. 32: человек без подсказок может сделать всё ниже. Сценарии 1–9 покрою автотестами, проверку с людьми проводите вы.",
+  "groupOrder": 3,
+  "groupTitle": "Проверка перед сдачей",
+  "note": "Проверено 2026-10-10 обрывом и зависанием видео: сообщение и «Загрузить ещё раз»",
+  "order": 10,
+  "owner": "claude",
+  "title": "Видео на медленной сети и при ошибке загрузки"
+ },
+ {
+  "id": "ch11",
+  "done": false,
+  "group": "checks",
+  "groupNote": "ТЗ, п. 32: человек без подсказок может сделать всё ниже. Сценарии 1–9 покрою автотестами, проверку с людьми проводите вы.",
+  "groupOrder": 3,
+  "groupTitle": "Проверка перед сдачей",
+  "order": 11,
+  "owner": "claude",
+  "title": "Доступность: клавиатура, фокус, контраст, уменьшение движения"
+ },
+ {
+  "id": "ch12",
+  "done": false,
+  "group": "checks",
+  "groupNote": "ТЗ, п. 32: человек без подсказок может сделать всё ниже. Сценарии 1–9 покрою автотестами, проверку с людьми проводите вы.",
+  "groupOrder": 3,
+  "groupTitle": "Проверка перед сдачей",
+  "order": 12,
+  "owner": "claude",
+  "title": "Телефоны и планшеты: Safari на iOS, Chrome на Android"
+ },
+ {
+  "id": "ch13",
+  "done": false,
+  "group": "checks",
+  "groupNote": "ТЗ, п. 32: человек без подсказок может сделать всё ниже. Сценарии 1–9 покрою автотестами, проверку с людьми проводите вы.",
+  "groupOrder": 3,
+  "groupTitle": "Проверка перед сдачей",
+  "order": 13,
+  "owner": "you",
+  "title": "Проверка с глухими пользователями, включая носителей РЖЯ"
+ },
+ {
+  "id": "yo01",
+  "done": false,
+  "group": "yours",
+  "groupNote": "Без них сайт нельзя публиковать. В коде под каждую уже есть место: подставить нужно в одном месте.",
+  "groupOrder": 4,
+  "groupTitle": "Ваши задачи вне кода",
+  "note": "Или снять свои видео по ТЗ. Контакт «Ковчега»: arkmedia.spb@yandex.ru",
+  "order": 1,
+  "owner": "you",
+  "title": "Получить письменное разрешение surdo.media на видео"
+ },
+ {
+  "id": "yo02",
+  "done": false,
+  "group": "yours",
+  "groupNote": "Без них сайт нельзя публиковать. В коде под каждую уже есть место: подставить нужно в одном месте.",
+  "groupOrder": 4,
+  "groupTitle": "Ваши задачи вне кода",
+  "order": 2,
+  "owner": "you",
+  "title": "Найти носителя РЖЯ для проверки жестов и текстов"
+ },
+ {
+  "id": "yo03",
+  "done": false,
+  "group": "yours",
+  "groupNote": "Без них сайт нельзя публиковать. В коде под каждую уже есть место: подставить нужно в одном месте.",
+  "groupOrder": 4,
+  "groupTitle": "Ваши задачи вне кода",
+  "note": "На 09.10.2026 свободны vidnoshkola.ru, vidno.school, govorimvidno.ru, vidno.me",
+  "order": 3,
+  "owner": "you",
+  "title": "Зарегистрировать домен"
+ },
+ {
+  "id": "yo04",
+  "done": false,
+  "group": "yours",
+  "groupNote": "Без них сайт нельзя публиковать. В коде под каждую уже есть место: подставить нужно в одном месте.",
+  "groupOrder": 4,
+  "groupTitle": "Ваши задачи вне кода",
+  "order": 4,
+  "owner": "you",
+  "title": "Проверить товарный знак «Видно» в реестре ФИПС"
+ },
+ {
+  "id": "yo05",
+  "done": false,
+  "group": "yours",
+  "groupNote": "Без них сайт нельзя публиковать. В коде под каждую уже есть место: подставить нужно в одном месте.",
+  "groupOrder": 4,
+  "groupTitle": "Ваши задачи вне кода",
+  "order": 5,
+  "owner": "you",
+  "title": "Создать счётчик Яндекс Метрики и прислать его номер"
+ },
+ {
+  "id": "yo06",
+  "done": false,
+  "group": "yours",
+  "groupNote": "Без них сайт нельзя публиковать. В коде под каждую уже есть место: подставить нужно в одном месте.",
+  "groupOrder": 4,
+  "groupTitle": "Ваши задачи вне кода",
+  "order": 6,
+  "owner": "you",
+  "title": "Прислать реквизиты оператора для политики конфиденциальности"
+ },
+ {
+  "id": "yo07",
+  "done": false,
+  "group": "yours",
+  "groupNote": "Без них сайт нельзя публиковать. В коде под каждую уже есть место: подставить нужно в одном месте.",
+  "groupOrder": 4,
+  "groupTitle": "Ваши задачи вне кода",
+  "order": 7,
+  "owner": "you",
+  "title": "Показать юристу политику и текст о cookie"
+ },
+ {
+  "id": "yo08",
+  "done": false,
+  "group": "yours",
+  "groupNote": "Без них сайт нельзя публиковать. В коде под каждую уже есть место: подставить нужно в одном месте.",
+  "groupOrder": 4,
+  "groupTitle": "Ваши задачи вне кода",
+  "order": 8,
+  "owner": "you",
+  "title": "Выбрать хостинг в РФ с PostgreSQL"
+ },
+ {
+  "id": "yo09",
+  "done": false,
+  "group": "yours",
+  "groupNote": "Без них сайт нельзя публиковать. В коде под каждую уже есть место: подставить нужно в одном месте.",
+  "groupOrder": 4,
+  "groupTitle": "Ваши задачи вне кода",
+  "note": "Секция на главной включится сама",
+  "order": 9,
+  "owner": "you",
+  "title": "Прислать данные преподавателей: имена, фото, роли"
+ },
+ {
+  "id": "yo10",
+  "done": false,
+  "group": "yours",
+  "groupNote": "Без них сайт нельзя публиковать. В коде под каждую уже есть место: подставить нужно в одном месте.",
+  "groupOrder": 4,
+  "groupTitle": "Ваши задачи вне кода",
+  "order": 10,
+  "owner": "you",
+  "title": "Собрать настоящие отзывы после первых занятий"
+ }
+];
+
+(function () {
+  const STORE = "vidno-tracker-v1";
+  const OWNERS = { claude: "Claude", you: "Вы" };
+  const groupsEl = document.getElementById("groups");
+  let marks = {};
+  let filter = "all";
+  try { marks = JSON.parse(localStorage.getItem(STORE) || "{}"); filter = localStorage.getItem(STORE + "-filter") || "all"; } catch (e) {}
+
+  const isDone = (t) => (t.id in marks ? marks[t.id] : !!t.done);
+  const tasks = TASKS.slice().sort((a, b) => (a.groupOrder - b.groupOrder) || (a.order - b.order));
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  function save() {
+    try { localStorage.setItem(STORE, JSON.stringify(marks)); localStorage.setItem(STORE + "-filter", filter); } catch (e) {}
+  }
+
+  function visible(t) {
+    if (filter === "open") return !isDone(t);
+    if (filter === "you") return t.owner === "you";
+    return true;
+  }
+
+  function render() {
+    const focusedId = document.activeElement && document.activeElement.id;
+    const total = tasks.length;
+    const done = tasks.filter(isDone).length;
+    document.getElementById("done-count").textContent = done;
+    document.getElementById("total-count").textContent = total;
+    document.getElementById("bar-fill").style.width = (total ? done / total * 100 : 0) + "%";
+    const firstGroup = tasks[0] && tasks[0].group;
+    const now = tasks.find((t) => t.group === firstGroup && !isDone(t)) || null;
+    document.getElementById("now").textContent = now ? "Сейчас: " + now.title : "Все этапы пройдены";
+    document.querySelectorAll(".filters button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.filter === filter)));
+
+    groupsEl.replaceChildren();
+    const groups = new Map();
+    for (const t of tasks) {
+      if (!groups.has(t.group)) groups.set(t.group, []);
+      groups.get(t.group).push(t);
+    }
+    let shown = 0;
+    for (const list of groups.values()) {
+      const items = list.filter(visible);
+      if (!items.length) continue;
+      shown++;
+      const head = list[0];
+      const gDone = list.filter(isDone).length;
+      const section = el("section", "group");
+      const ghead = el("div", "ghead");
+      const row = el("div", "ghead-row");
+      row.append(el("h2", null, head.groupTitle), el("span", "gcount", gDone + " из " + list.length));
+      ghead.append(row);
+      if (head.groupNote) ghead.append(el("p", "gnote", head.groupNote));
+      const gbar = el("div", "bar gbar");
+      const gfill = el("span");
+      gfill.style.width = (gDone / list.length * 100) + "%";
+      gbar.append(gfill);
+      ghead.append(gbar);
+      section.append(ghead);
+
+      const ul = el("ul", "tasks");
+      for (const t of items) {
+        const doneNow = isDone(t);
+        const li = el("li");
+        const label = el("label", "task" + (doneNow ? " is-done" : "") + (now && now.id === t.id ? " is-now" : ""));
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        box.id = "task-" + t.id;
+        box.checked = doneNow;
+        box.addEventListener("change", () => { marks[t.id] = box.checked; save(); render(); });
+        const body = el("span", "body");
+        body.append(el("span", "title", t.title));
+        if (t.note) body.append(el("span", "note", t.note));
+        const tags = el("span", "tags");
+        if (now && now.id === t.id) tags.append(el("span", "chip now", "сейчас"));
+        if (OWNERS[t.owner]) tags.append(el("span", "chip" + (t.owner === "you" ? " you" : ""), OWNERS[t.owner]));
+        label.append(box, body, tags);
+        li.append(label);
+        ul.append(li);
+      }
+      section.append(ul);
+      groupsEl.append(section);
+    }
+    if (!shown) groupsEl.append(el("p", "state", filter === "open" ? "Открытых задач нет." : "Здесь пока пусто."));
+    if (focusedId) { const f = document.getElementById(focusedId); if (f) f.focus(); }
+  }
+
+  document.querySelectorAll(".filters button").forEach((b) => b.addEventListener("click", () => {
+    filter = b.dataset.filter;
+    save();
+    render();
+  }));
+
+  render();
+})();
+</script>
+</body>
+</html>

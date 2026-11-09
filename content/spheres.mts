@@ -1,0 +1,102 @@
+// «Взрослым — сферы жизни» (ТЗ, п. 5): категории-сферы и жесты к ним. Жест из другой сферы или темы подключается через also, без дубликатов.
+// Значения — короткий словарный смысл слова, черновик (needs_review). Как выполняется и контекст для этих жестов не заполнены.
+import type { SignInput } from "./content.mts";
+
+export const sphereCategories = [
+  { slug: "priroda", title: "Природа" },
+  { slug: "zhivotnye", title: "Животные" },
+  { slug: "gorod", title: "Город" },
+  { slug: "dom", title: "Дом" },
+  { slug: "eda", title: "Еда" },
+  { slug: "rabota", title: "Работа" },
+  { slug: "ucheba", title: "Учёба" },
+  { slug: "transport", title: "Транспорт" },
+  { slug: "zdorove", title: "Здоровье" },
+];
+
+export const sphereSigns: SignInput[] = [
+  // Семья
+  { slug: "rebenok", title: "Ребёнок", category: "semya", kind: "object", video: "2023/07/rebenok.mp4", source: "/topics/otnosheniya-semya-obshhestvo/rebenok/", meaning: "Ребёнок." },
+  { slug: "syn", title: "Сын", category: "semya", kind: "object", video: "2023/07/syn.mp4", source: "/topics/otnosheniya-semya-obshhestvo/syn/", meaning: "Сын." },
+  { slug: "doch", title: "Дочь", category: "semya", kind: "object", video: "2023/07/doch_.mp4", source: "/topics/otnosheniya-semya-obshhestvo/doch_/", meaning: "Дочь." },
+  { slug: "muzh", title: "Муж", category: "semya", kind: "object", video: "2023/07/muzh.mp4", source: "/topics/otnosheniya-semya-obshhestvo/muzh/", meaning: "Муж." },
+  { slug: "zhena", title: "Жена", category: "semya", kind: "object", video: "2023/07/zhena.mp4", source: "/topics/otnosheniya-semya-obshhestvo/zhena/", meaning: "Жена." },
+  // Природа
+  { slug: "sneg", title: "Снег", category: "priroda", kind: "object", video: "2023/10/Sneg.mp4", source: "/topics/nezhivaya-priroda/sneg/", meaning: "Снег." },
+  { slug: "nebo", title: "Небо", category: "priroda", kind: "object", video: "2023/10/Nebo.mp4", source: "/topics/nezhivaya-priroda/nebo/", meaning: "Небо." },
+  { slug: "more", title: "Море", category: "priroda", kind: "object", video: "2023/10/More.mp4", source: "/topics/nezhivaya-priroda/more/", meaning: "Море." },
+  { slug: "reka", title: "Река", category: "priroda", kind: "object", video: "2023/10/Reka.mp4", source: "/topics/nezhivaya-priroda/reka/", meaning: "Река." },
+  { slug: "les", title: "Лес", category: "priroda", kind: "object", video: "2023/08/Les.mp4", source: "/topics/zhivaya-priroda/les/", meaning: "Лес." },
+  { slug: "gora", title: "Гора", category: "priroda", kind: "object", video: "2023/10/Gora.mp4", source: "/topics/nezhivaya-priroda/gora/", meaning: "Гора." },
+  // Животные
+  { slug: "korova", title: "Корова", category: "zhivotnye", kind: "object", video: "2023/11/Korova.mp4", source: "/vocabulary/korova/", meaning: "Корова — домашнее животное." },
+  { slug: "kon", title: "Конь", category: "zhivotnye", kind: "object", video: "2023/11/Kon.mp4", source: "/vocabulary/kon/", meaning: "Конь, лошадь." },
+  { slug: "svinya", title: "Свинья", category: "zhivotnye", kind: "object", video: "2023/11/Svinya.mp4", source: "/vocabulary/svinya/", meaning: "Свинья — домашнее животное." },
+  { slug: "zayac", title: "Заяц", category: "zhivotnye", kind: "object", video: "2023/08/Zayats.mp4", source: "/topics/zhivaya-priroda/zayats/", meaning: "Заяц — дикий зверь." },
+  // Город
+  { slug: "ulica", title: "Улица", category: "gorod", kind: "object", video: "2023/10/Ulitsa.mp4", source: "/topics/gorod-i-transport/ulitsa/", meaning: "Улица." },
+  { slug: "doroga", title: "Дорога", category: "gorod", kind: "object", video: "2023/10/Doroga.mp4", source: "/topics/gorod-i-transport/doroga/", meaning: "Дорога." },
+  { slug: "ploshchad", title: "Площадь", category: "gorod", kind: "object", video: "2023/10/Ploshhad.mp4", source: "/topics/gorod-i-transport/ploshhad/", meaning: "Площадь в городе." },
+  { slug: "park", title: "Парк", category: "gorod", kind: "object", video: "2023/10/Park.mp4", source: "/topics/gorod-i-transport/park/", meaning: "Парк." },
+  { slug: "most", title: "Мост", category: "gorod", kind: "object", video: "2023/10/Most.mp4", source: "/topics/gorod-i-transport/most/", meaning: "Мост." },
+  { slug: "svetofor", title: "Светофор", category: "gorod", kind: "object", video: "2023/10/Svetofor.mp4", source: "/topics/gorod-i-transport/svetofor/", meaning: "Светофор." },
+  { slug: "pochta", title: "Почта", category: "gorod", kind: "object", video: "2023/10/Pochta.mp4", source: "/topics/gorod-i-transport/pochta/", meaning: "Почта." },
+  { slug: "muzej", title: "Музей", category: "gorod", kind: "object", video: "2023/10/Muzej.mp4", source: "/topics/gorod-i-transport/muzej/", meaning: "Музей." },
+  // Транспорт
+  { slug: "transport", title: "Транспорт", category: "transport", kind: "object", video: "2023/10/Transport.mp4", source: "/topics/gorod-i-transport/transport/", meaning: "Транспорт." },
+  { slug: "ehat", title: "Ехать", category: "transport", kind: "action", video: "2023/10/Ehat.mp4", source: "/topics/gorod-i-transport/ehat/", meaning: "Ехать." },
+  { slug: "bilet", title: "Билет", category: "transport", kind: "object", video: "2023/10/Bilet.mp4", source: "/topics/gorod-i-transport/bilet/", meaning: "Билет." },
+  { slug: "taksi", title: "Такси", category: "transport", kind: "object", video: "2023/10/Taksi.mp4", source: "/topics/gorod-i-transport/taksi/", meaning: "Такси." },
+  { slug: "metro", title: "Метро", category: "transport", also: ["gorod"], kind: "object", video: "2023/10/Metro.mp4", source: "/topics/gorod-i-transport/metro/", meaning: "Метро." },
+  { slug: "ostanovka", title: "Остановка", category: "transport", also: ["gorod"], kind: "object", video: "2023/10/Ostanovka.mp4", source: "/topics/gorod-i-transport/ostanovka/", meaning: "Остановка транспорта." },
+  { slug: "vokzal", title: "Вокзал", category: "transport", also: ["gorod"], kind: "object", video: "2023/10/Vokzal.mp4", source: "/topics/gorod-i-transport/vokzal/", meaning: "Вокзал." },
+  // Дом
+  { slug: "kvartira", title: "Квартира", category: "dom", kind: "object", video: "2023/07/kvartira.mp4", source: "/topics/otnosheniya-semya-obshhestvo/kvartira/", meaning: "Квартира." },
+  { slug: "komnata", title: "Комната", category: "dom", kind: "object", video: "2023/07/komnata.mp4", source: "/topics/otnosheniya-semya-obshhestvo/komnata/", meaning: "Комната." },
+  { slug: "stol", title: "Стол", category: "dom", kind: "object", video: "2023/07/stol.mp4", source: "/topics/dom-domashnie-veshhi/stol/", meaning: "Стол." },
+  { slug: "stul", title: "Стул", category: "dom", kind: "object", video: "2023/07/stul.mp4", source: "/topics/dom-domashnie-veshhi/stul/", meaning: "Стул." },
+  { slug: "shkaf", title: "Шкаф", category: "dom", kind: "object", video: "2023/07/shkaf.mp4", source: "/topics/dom-domashnie-veshhi/shkaf/", meaning: "Шкаф." },
+  { slug: "holodilnik", title: "Холодильник", category: "dom", kind: "object", video: "2023/07/holodil_nik.mp4", source: "/topics/dom-domashnie-veshhi/holodil_nik/", meaning: "Холодильник." },
+  { slug: "televizor", title: "Телевизор", category: "dom", kind: "object", video: "2023/07/televizor.mp4", source: "/topics/dom-domashnie-veshhi/televizor/", meaning: "Телевизор." },
+  { slug: "telefon", title: "Телефон", category: "dom", kind: "object", video: "2023/07/telefon.mp4", source: "/topics/dom-domashnie-veshhi/telefon/", meaning: "Телефон." },
+  { slug: "podushka", title: "Подушка", category: "dom", kind: "object", video: "2023/07/podushka.mp4", source: "/topics/dom-domashnie-veshhi/podushka/", meaning: "Подушка." },
+  { slug: "chasy", title: "Часы", category: "dom", also: ["vremya"], kind: "object", video: "2023/07/chasy.mp4", source: "/topics/dom-domashnie-veshhi/chasy/", meaning: "Часы." },
+  // Еда
+  { slug: "eda", title: "Еда", category: "eda", kind: "object", video: "2023/07/eda.mp4", source: "/topics/kuhnya-i-eda/eda/", meaning: "Еда, пища." },
+  { slug: "voda", title: "Вода", category: "eda", kind: "object", video: "2023/07/voda.mp4", source: "/topics/kuhnya-i-eda/voda/", meaning: "Вода." },
+  { slug: "chaj", title: "Чай", category: "eda", kind: "object", video: "2023/07/chaiy.mp4", source: "/topics/kuhnya-i-eda/chaiy/", meaning: "Чай." },
+  { slug: "gotovit", title: "Готовить", category: "eda", kind: "action", video: "2023/07/gotovit_.mp4", source: "/topics/kuhnya-i-eda/gotovit_/", meaning: "Готовить еду." },
+  { slug: "vkusnyj", title: "Вкусный", category: "eda", kind: "other", video: "2023/07/vkusnyiy.mp4", source: "/topics/kuhnya-i-eda/vkusnyiy/", meaning: "Вкусный." },
+  { slug: "chashka", title: "Чашка", category: "eda", kind: "object", video: "2023/07/chashka.mp4", source: "/topics/kuhnya-i-eda/chashka/", meaning: "Чашка." },
+  // Работа
+  { slug: "trud", title: "Труд", category: "rabota", kind: "object", video: "2023/07/trud.mp4", source: "/topics/trud-trudovye-i-ekonomicheskie-otnosheniya/trud/", meaning: "Труд, работа." },
+  { slug: "professiya", title: "Профессия", category: "rabota", kind: "object", video: "2023/07/professiya.mp4", source: "/topics/trud-trudovye-i-ekonomicheskie-otnosheniya/professiya/", meaning: "Профессия." },
+  { slug: "zarplata", title: "Зарплата", category: "rabota", kind: "object", video: "2023/07/zarplata.mp4", source: "/topics/trud-trudovye-i-ekonomicheskie-otnosheniya/zarplata/", meaning: "Зарплата." },
+  { slug: "nachalnik", title: "Начальник", category: "rabota", kind: "object", video: "2023/07/nachal_nik.mp4", source: "/topics/trud-trudovye-i-ekonomicheskie-otnosheniya/nachal_nik/", meaning: "Начальник." },
+  { slug: "rabochij", title: "Рабочий", category: "rabota", kind: "object", video: "2023/07/rabochiiy.mp4", source: "/topics/trud-trudovye-i-ekonomicheskie-otnosheniya/rabochiiy/", meaning: "Рабочий." },
+  { slug: "zavod", title: "Завод", category: "rabota", kind: "object", video: "2023/07/zavod.mp4", source: "/topics/trud-trudovye-i-ekonomicheskie-otnosheniya/zavod/", meaning: "Завод." },
+  { slug: "stroit", title: "Строить", category: "rabota", kind: "action", video: "2023/07/stroit_.mp4", source: "/topics/trud-trudovye-i-ekonomicheskie-otnosheniya/stroit_/", meaning: "Строить." },
+  { slug: "dengi", title: "Деньги", category: "rabota", kind: "object", video: "2023/07/den_gi.mp4", source: "/topics/otnosheniya-semya-obshhestvo/den_gi/", meaning: "Деньги." },
+  { slug: "bank", title: "Банк", category: "rabota", kind: "object", video: "2023/07/bank.mp4", source: "/topics/trud-trudovye-i-ekonomicheskie-otnosheniya/bank/", meaning: "Банк." },
+  { slug: "dogovor", title: "Договор", category: "rabota", kind: "object", video: "2023/07/dogovor.mp4", source: "/topics/trud-trudovye-i-ekonomicheskie-otnosheniya/dogovor/", meaning: "Договор." },
+  // Учёба
+  { slug: "shkola", title: "Школа", category: "ucheba", kind: "object", video: "2023/07/shkola.mp4", source: "/topics/shkola-obrazovanie-nauka/shkola/", meaning: "Школа." },
+  { slug: "uchitel", title: "Учитель", category: "ucheba", also: ["rabota"], kind: "object", video: "2023/07/uchitel_.mp4", source: "/topics/shkola-obrazovanie-nauka/uchitel_/", meaning: "Учитель." },
+  { slug: "uchit", title: "Учить", category: "ucheba", kind: "action", video: "2023/07/uchit_.mp4", source: "/topics/shkola-obrazovanie-nauka/uchit_/", meaning: "Учить." },
+  { slug: "chitat", title: "Читать", category: "ucheba", kind: "action", video: "2023/07/chitat_.mp4", source: "/topics/shkola-obrazovanie-nauka/chitat_/", meaning: "Читать." },
+  { slug: "pisat", title: "Писать", category: "ucheba", kind: "action", video: "2023/07/pisat_.mp4", source: "/topics/otnosheniya-semya-obshhestvo/pisat_/", meaning: "Писать." },
+  { slug: "kniga", title: "Книга", category: "ucheba", kind: "object", video: "2023/07/kniga.mp4", source: "/topics/shkola-obrazovanie-nauka/kniga/", meaning: "Книга." },
+  { slug: "tetrad", title: "Тетрадь", category: "ucheba", kind: "object", video: "2023/07/tetrad_.mp4", source: "/topics/shkola-obrazovanie-nauka/tetrad_/", meaning: "Тетрадь." },
+  { slug: "ekzamen", title: "Экзамен", category: "ucheba", kind: "object", video: "2023/07/aekzamen.mp4", source: "/topics/shkola-obrazovanie-nauka/aekzamen/", meaning: "Экзамен." },
+  { slug: "oshibka", title: "Ошибка", category: "ucheba", kind: "object", video: "2023/07/oshibka.mp4", source: "/topics/shkola-obrazovanie-nauka/oshibka/", meaning: "Ошибка." },
+  // Здоровье
+  { slug: "vrach", title: "Врач", category: "zdorove", also: ["rabota"], kind: "object", video: "2023/11/Vrach.mp4", source: "/vocabulary/vrach/", meaning: "Врач." },
+  { slug: "apteka", title: "Аптека", category: "zdorove", kind: "object", video: "2023/11/Apteka.mp4", source: "/vocabulary/apteka/", meaning: "Аптека." },
+  { slug: "lekarstvo", title: "Лекарство", category: "zdorove", kind: "object", video: "2023/11/Lekarstvo.mp4", source: "/vocabulary/lekarstvo/", meaning: "Лекарство." },
+  { slug: "tabletka", title: "Таблетка", category: "zdorove", kind: "object", video: "2023/11/Tabletka.mp4", source: "/vocabulary/tabletka/", meaning: "Таблетка." },
+  { slug: "temperatura", title: "Температура", category: "zdorove", kind: "object", video: "2023/11/Temperatura.mp4", source: "/vocabulary/temperatura/", meaning: "Температура тела." },
+  { slug: "lechit", title: "Лечить", category: "zdorove", kind: "action", video: "2023/11/Lechit.mp4", source: "/vocabulary/lechit/", meaning: "Лечить." },
+  { slug: "prostuda", title: "Простуда", category: "zdorove", kind: "object", video: "2023/11/Prostuda.mp4", source: "/vocabulary/prostuda/", meaning: "Простуда." },
+  { slug: "kashel", title: "Кашель", category: "zdorove", kind: "object", video: "2023/11/Kashel.mp4", source: "/vocabulary/kashel/", meaning: "Кашель." },
+  { slug: "gripp", title: "Грипп", category: "zdorove", kind: "object", video: "2023/11/Gripp.mp4", source: "/vocabulary/gripp/", meaning: "Грипп." },
+];

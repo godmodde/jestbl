@@ -1,0 +1,39 @@
+{
+  "name": "vidno",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3003 -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start -p 3003 -H 0.0.0.0",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "db:up": "docker start vidno-postgres 2>/dev/null || docker run -d --name vidno-postgres -p 5433:5432 -e POSTGRES_USER=vidno -e POSTGRES_PASSWORD=vidno -e POSTGRES_DB=vidno -v vidno-pg:/var/lib/postgresql/data postgres:15-alpine",
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mts",
+    "db:seed": "node --env-file-if-exists=.env.local scripts/seed.mts",
+    "dactyl:templates": "node --env-file-if-exists=.env.local scripts/dactyl-templates.mts"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "1.0.1",
+    "next": "16.2.12",
+    "postgres": "^3.4.9",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "server-only": "^0.0.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.12",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.1.9"
+  }
+}

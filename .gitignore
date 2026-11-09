@@ -1,0 +1,24 @@
+# сборка и зависимости
+/node_modules
+/.next
+/out
+next-env.d.ts
+*.tsbuildinfo
+
+# тесты
+/test-results
+/playwright-report
+
+# env
+.env*
+!.env.example
+
+# claude
+.claude/settings.local.json
+
+.DS_Store
+
+# impeccable: снимки экрана с кадрами демо-роликов surdo.media (публиковать нельзя) и временные файлы
+.impeccable/review/
+.impeccable/live/
+.impeccable/hook.cache.json
