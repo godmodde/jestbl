@@ -49,8 +49,12 @@ export async function getLetter(device: string | null, slug: string) {
 
 // ——— Взрослым ———
 
+/** «Все слова А–Я» — первая категория библиотеки взрослым (сверка с заказчиком 2026-11-10): вся база без букв.
+ *  Не строка в таблице категорий — иначе она попала бы в списки категорий словаря и карточек жестов. */
+export const ALL_WORDS = { slug: "a-ya", title: "Все слова А–Я", position: -1 };
+
 export async function getLibrary(device: string | null) {
-  const [categories, kinds] = await Promise.all([
+  const [categories, kinds, [all]] = await Promise.all([
     sql<{ slug: string; title: string; total: number; learned: number; picture: string | null }[]>`
       select c.slug, c.title, count(*)::int as total, count(st.learned_at)::int as learned,
         (array_agg(s.picture order by s.sort_key) filter (where s.picture is not null))[1] as picture
@@ -60,22 +64,28 @@ export async function getLibrary(device: string | null) {
       group by c.slug, c.title, c.position order by c.position`,
     sql<{ kind: string; total: number }[]>`
       select kind, count(*)::int as total from signs where kind not in ('letter', 'other') group by kind order by total desc`,
+    sql<{ total: number; learned: number }[]>`
+      select count(*)::int as total, count(st.learned_at)::int as learned from signs s
+      left join sign_state st on st.sign_id = s.id and st.device_id = ${device}::uuid where s.kind <> 'letter'`,
   ]);
-  return { categories, kinds };
+  return { categories, kinds, all: { ...ALL_WORDS, ...all } };
 }
 
 export async function getCategory(device: string | null, slug: string) {
-  const [category] = await sql<{ slug: string; title: string; position: number }[]>`
+  const all = slug === ALL_WORDS.slug;
+  const [category] = all ? [ALL_WORDS] : await sql<{ slug: string; title: string; position: number }[]>`
     select slug, title, position from categories where slug = ${slug}`;
   if (!category) return null;
+  const inCategory = (id: ReturnType<typeof sql>) => (all ? sql`` : sql`and exists (select 1 from sign_categories x where x.sign_id = ${id} and x.category = ${slug})`);
   const [rows, similar, attempts, next] = await Promise.all([
-    sql<SignRow[]>`select ${signColumns} from sign_categories sc join signs s on s.id = sc.sign_id ${signJoins(device)}
-      where sc.category = ${slug} and s.kind <> 'letter' order by s.sort_key`,
+    sql<SignRow[]>`select ${signColumns} from signs s ${signJoins(device)}
+      where s.kind <> 'letter' ${inCategory(sql`s.id`)} order by s.sort_key`,
     sql<{ sign: string; other: string }[]>`
       select a.slug as sign, b.slug as other from sign_similar ss
       join signs a on a.id = ss.sign_id join signs b on b.id = ss.similar_id
-      where ss.kind = 'similar' and exists (select 1 from sign_categories x where x.sign_id = a.id and x.category = ${slug})`,
-    sql<{ correct: number; total: number; created_at: Date }[]>`
+      where ss.kind = 'similar' ${inCategory(sql`a.id`)}`,
+    // ponytail: экзамен «Все слова А–Я» не сохраняется — exam_attempts ссылается на таблицу категорий. Балл виден в итоге.
+    all ? Promise.resolve([]) : sql<{ correct: number; total: number; created_at: Date }[]>`
       select correct, total, created_at from exam_attempts where device_id = ${device}::uuid and category = ${slug}
       order by created_at desc limit 1`,
     sql<{ slug: string; title: string }[]>`
@@ -105,50 +115,80 @@ export type KidsTopic = {
   stations: Station[]; stickers: Sticker[]; stars: number;
 };
 
-export async function getKids(device: string | null): Promise<KidsTopic[]> {
-  const [topics, stations, signs, stars] = await Promise.all([
+/** Два альбома детского мира: темы (семья, животные…) и буквы (решение заказчика 2026-11-10). */
+export type KidsWorld = "kids" | "kids-alphabet";
+
+/** small — малыши 3–5: без «Найди отличие» (сверка с заказчиком 2026-11-10). */
+export async function getKids(device: string | null, world: KidsWorld = "kids", small = false): Promise<KidsTopic[]> {
+  const [topics, stations, signs, stars, shown] = await Promise.all([
     sql<{ id: number; slug: string; title: string; status: "open" | "soon" }[]>`
-      select id, slug, title, status from topics where direction = 'kids' order by position`,
+      select id, slug, title, status from topics where direction = ${world} order by position`,
     sql<{ topic_id: number; slug: string; kind: string; title: string; completed: boolean }[]>`
       select l.topic_id, l.slug, l.kind, l.title, p.completed_at is not null as completed
       from lessons l join topics t on t.id = l.topic_id
       left join lesson_progress p on p.lesson_id = l.id and p.device_id = ${device}::uuid
-      where t.direction = 'kids' order by l.position`,
+      where t.direction = ${world} order by l.position`,
     // Наклейки темы — жесты первой станции по порядку: i-я пройденная станция вклеивает i-ю наклейку.
     sql<{ topic_id: number; slug: string; title: string; picture: string | null; video_url: string | null }[]>`
       select distinct on (l.topic_id, ls.position) l.topic_id, s.slug, s.title, s.picture, s.video_url
       from lessons l join topics t on t.id = l.topic_id join lesson_signs ls on ls.lesson_id = l.id join signs s on s.id = ls.sign_id
-      where t.direction = 'kids' order by l.topic_id, ls.position, l.position`,
+      where t.direction = ${world} order by l.topic_id, ls.position, l.position`,
     sql<{ topic_id: number; stars: number }[]>`
       select l.topic_id, max(a.stars)::int as stars from exam_attempts a join lessons l on l.id = a.lesson_id
-      where a.device_id = ${device}::uuid and l.kind = 'exam' group by l.topic_id`,
+      where a.device_id = ${device}::uuid and l.kind in ('exam', 'show') group by l.topic_id`,
+    // Букву вклеивает тест «Покажи букву»: она есть в попытке и не попала в её ошибки.
+    world === "kids-alphabet" ? sql<{ slug: string }[]>`
+      select distinct s.slug from exam_attempts a join lessons l on l.id = a.lesson_id
+      join lesson_signs ls on ls.lesson_id = l.id join signs s on s.id = ls.sign_id
+      where a.device_id = ${device}::uuid and l.kind = 'show' and not (s.slug = any(a.mistakes))` : Promise.resolve([]),
   ]);
+  const passed = new Set(shown.map((r) => r.slug));
   let prevDone = true;
+  // Темы — на выбор, игры в теме тоже (сверка с заказчиком 2026-11-10); буквы — по очереди: группа и задание открываются после предыдущих.
+  const free = world === "kids";
   return topics.map((t) => {
-    const own = stations.filter((s) => s.topic_id === t.id);
+    const own = stations.filter((s) => s.topic_id === t.id && !(small && s.kind === "diff"));
     const done = own.filter((s) => s.completed).length;
     const topicStars = stars.find((s) => s.topic_id === t.id)?.stars ?? 0;
-    const open = t.status === "open" && prevDone;
+    const open = t.status === "open" && (free || prevDone);
     prevDone = open && topicStars > 0;
     return {
       slug: t.slug, title: t.title, status: t.status, open, stars: topicStars,
-      stations: own.map((s, i) => ({ slug: s.slug, kind: s.kind, title: s.title, completed: s.completed, open: open && (i === 0 || own[i - 1].completed) })),
+      stations: own.map((s, i) => ({ slug: s.slug, kind: s.kind, title: s.title, completed: s.completed, open: open && (free || i === 0 || own[i - 1].completed) })),
       stickers: signs.filter((s) => s.topic_id === t.id).map((s, i) => ({
-        slug: s.slug, title: s.title, picture: s.picture, videoUrl: demoVideos ? s.video_url : null, earned: i < done,
+        slug: s.slug, title: s.title, picture: s.picture, videoUrl: demoVideos ? s.video_url : null,
+        // Все игры темы пройдены — вклеены все наклейки: у малышей игр на одну меньше, чем наклеек.
+        earned: free ? i < done || (own.length > 0 && done === own.length) : passed.has(s.slug),
       })),
     };
   });
 }
 
-export async function getKidsStation(device: string | null, topicSlug: string, stationSlug: string) {
-  const topics = await getKids(device);
-  const topic = topics.find((t) => t.slug === topicSlug);
+/** Альбом, к которому относится тема: её мир и все темы этого мира. */
+export async function getKidsAlbum(device: string | null, topicSlug: string, small = false) {
+  const [row] = await sql<{ direction: KidsWorld }[]>`
+    select direction from topics where slug = ${topicSlug} and direction in ('kids', 'kids-alphabet')`;
+  return row ? { world: row.direction, topics: await getKids(device, row.direction, small) } : null;
+}
+
+export async function getKidsStation(device: string | null, topicSlug: string, stationSlug: string, small = false) {
+  const album = await getKidsAlbum(device, topicSlug, small);
+  const topic = album?.topics.find((t) => t.slug === topicSlug);
   const station = topic?.stations.find((s) => s.slug === stationSlug);
   if (!topic || !station) return null;
   const rows = await sql<SignRow[]>`select ${signColumns} from lessons l join lesson_signs ls on ls.lesson_id = l.id
     join signs s on s.id = ls.sign_id ${signJoins(device)} where l.slug = ${stationSlug} order by ls.position`;
   const index = topic.stations.indexOf(station);
-  return { topic, station, index, signs: rows.map(toSign), next: topic.stations[index + 1] ?? null };
+  return { world: album!.world, topic, station, index, signs: rows.map(toSign), next: topic.stations[index + 1] ?? null };
+}
+
+/** Копилка звёзд (сверка с заказчиком 2026-11-10): лучший итог каждой темы и группы букв — повтор того же результата не добавляет. */
+export async function getStarBank(device: string | null) {
+  const [row] = await sql<{ stars: number }[]>`
+    select coalesce(sum(best), 0)::int as stars from (
+      select max(a.stars) as best from exam_attempts a join lessons l on l.id = a.lesson_id join topics t on t.id = l.topic_id
+      where a.device_id = ${device}::uuid and t.direction in ('kids', 'kids-alphabet') group by t.id) b`;
+  return row.stars;
 }
 
 // ——— Главный экран обучения ———
@@ -164,18 +204,19 @@ export async function getContinue(device: string | null) {
 }
 
 export async function getDirectionsSummary(device: string | null) {
-  const [[letters], kids] = await Promise.all([
+  const [[letters], kids, stars] = await Promise.all([
     sql<{ total: number; learned: number }[]>`
       select count(*)::int as total, count(st.learned_at)::int as learned from signs s
       left join sign_state st on st.sign_id = s.id and st.device_id = ${device}::uuid where s.kind = 'letter'`,
     getKids(device),
+    getStarBank(device),
   ]);
   return {
     alphabet: letters,
     kids: {
       stickers: kids.reduce((n, t) => n + t.stickers.filter((s) => s.earned).length, 0),
       total: kids.reduce((n, t) => n + t.stickers.length, 0),
-      stars: kids.reduce((n, t) => n + t.stars, 0),
+      stars,
       pictures: kids.map((t) => t.stickers[0]?.picture).filter((p): p is string => !!p).slice(0, 3),
     },
   };

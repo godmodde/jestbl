@@ -14,7 +14,7 @@ export const LETTER_TILE: Record<Status, string> = {
 };
 const STATUS_TITLE: Record<Status, string> = { new: "не изучена", learned: "изучена", review: "пора повторить" };
 
-// Дактиль (ТЗ, п. 5): буквы удобными группами, а не одним длинным списком; у каждой — видео, обведение, проверка.
+// Дактиль взрослым (решение заказчика 2026-11-10): ролики удобными группами и тест с выбором ответа. Обводка и камера — в детском алфавите.
 export default async function AlphabetPage() {
   const groups = await getAlphabet(await currentDevice());
   const next = groups.flatMap((g) => g.letters).find((l) => l.status !== "learned");
@@ -24,7 +24,7 @@ export default async function AlphabetPage() {
       <header className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
         <div className="grid gap-3">
           <h1 className="m-0 font-display text-[clamp(36px,5vw,64px)] leading-none font-semibold tracking-[-0.035em]">Алфавит</h1>
-          <p className="m-0 text-[17px] text-ink-2">33 буквы дактиля. Смотрим, обводим, проверяем.</p>
+          <p className="m-0 text-[17px] text-ink-2">33 буквы дактиля. Смотрим ролики и проходим тест по группам.</p>
         </div>
         {next && <ButtonLink href={`/alphabet/${next.slug}`}>{next.status === "review" ? "Повторить" : "Продолжить"}: {next.title} <Arrow /></ButtonLink>}
       </header>
@@ -35,7 +35,7 @@ export default async function AlphabetPage() {
             <div className="flex items-baseline justify-between gap-4 lg:grid lg:content-start lg:gap-3">
               <h2 id={g.slug} className="m-0 font-display text-2xl font-semibold tracking-[-0.02em]">{g.title}</h2>
               <Link href={`/alphabet/check/${g.slug}`} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border-[1.5px] border-line px-4 text-[15px] font-semibold transition-colors hover:border-ink">
-                {g.check ? `Проверка: ${g.check.correct} из ${g.check.total}` : "Проверить группу"}
+                {g.check ? `Тест: ${g.check.correct} из ${g.check.total}` : "Пройти тест"}
               </Link>
             </div>
             <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3 p-0">

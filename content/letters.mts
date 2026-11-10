@@ -56,3 +56,19 @@ export const alphabetLessons = [
   { slug: "alfavit-shch-ya", topic: "alfavit", title: "Щ — Я", summary: "Буквы Щ, Ъ, Ы, Ь, Э, Ю, Я.", kind: "lesson",
     signs: ["bukva-shch", "bukva-tverdyj-znak", "bukva-y", "bukva-myagkij-znak", "bukva-eh", "bukva-yu", "bukva-ya"] },
 ];
+
+// Детский алфавит (решение заказчика 2026-11-10): те же шесть групп в детском мире — страница альбома и три станции по порядку.
+// Тест «Покажи букву» — камерой, без камеры — выбором; звёзды открывают следующую группу, верно показанные буквы — наклейки.
+export const kidsAlphabetTopics = alphabetLessons.map((g) => ({
+  slug: g.slug.replace("alfavit-", "bukvy-"), title: g.title, description: g.summary, status: "open", direction: "kids-alphabet",
+}));
+
+const KIDS_ALPHABET_STATIONS = [
+  { kind: "trace", title: "Обведи букву", summary: "Обведи заглавную и строчную." },
+  { kind: "choose", title: "Найди букву", summary: "Посмотри жест и выбери букву." },
+  { kind: "show", title: "Покажи букву", summary: "Покажи букву рукой и получи звёзды." },
+];
+
+export const kidsAlphabetLessons = kidsAlphabetTopics.flatMap((t, i) => KIDS_ALPHABET_STATIONS.map((s) => ({
+  slug: `${t.slug}-${s.kind}`, topic: t.slug, title: s.title, summary: s.summary, kind: s.kind, signs: alphabetLessons[i].signs,
+})));

@@ -1,6 +1,6 @@
 // Экзамен по категории и практика (ТЗ, п. 5): чистые функции, проверяются в exam.test.ts.
 // Правила ТЗ: только жесты категории, вопросы и варианты перемешаны, слово-цель не повторяется,
-// не больше пяти типов вопросов, похожие жесты — только если они есть в категории.
+// до семи типов вопросов (сверка с заказчиком 2026-11-10), похожие жесты — только если они есть в категории.
 
 export type ExamSign = { slug: string; title: string; meaning: string; kind: string; similar: string[] };
 
@@ -10,10 +10,12 @@ export type Question =
   | { type: "meaning"; sign: string; options: string[] } // толкование → видео
   | { type: "similar"; sign: string; options: string[] } // слово → видео, рядом похожий жест
   | { type: "match"; signs: string[]; order: string[] } // три видео ↔ три слова
+  | { type: "explain"; sign: string; options: string[] } // видео → толкование
+  | { type: "truefalse"; sign: string; shown: string } // видео и слово: верно ли подписано
   | { type: "recall"; sign: string }; // только практика: вспомнить до раскрытия
 
 export const EXAM_SIZE = 10;
-const TYPES = ["recognize", "find", "meaning", "similar", "match"] as const;
+const TYPES = ["recognize", "find", "meaning", "similar", "match", "explain", "truefalse"] as const;
 
 export function rng(seed: string) {
   let h = 2166136261;
@@ -32,6 +34,15 @@ export function shuffle<T>(items: T[], rand: () => number): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+/** Толкование без самого слова: «Бабушка — мама мамы или папы.» → «Мама мамы или папы.»; пусто, если толкование — только слово.
+ *  Иначе вопрос «жест → толкование» повторял бы «жест → слово». */
+export function explanation(s: { title: string; meaning: string }) {
+  const word = s.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const rest = s.meaning.replace(new RegExp(`^${word}\\s*[—–-]\\s*`, "i"), "").trim();
+  if (!rest || rest.replace(/[.\s]/g, "").toLowerCase() === s.title.replace(/\s/g, "").toLowerCase()) return "";
+  return rest[0].toUpperCase() + rest.slice(1);
 }
 
 /** Экзамен нельзя собрать честно меньше чем из четырёх жестов: варианты стали бы угадайкой. */
@@ -56,12 +67,19 @@ export function buildQuestions(pool: ExamSign[], seed: string, { size = EXAM_SIZ
       questions.push({ type, signs, order: shuffle(signs, rand) });
     } else if (type === "recall") {
       questions.push({ type, sign: sign.slug });
+    } else if (type === "explain" && explanation(sign)) {
+      // Варианты — только жесты, у которых есть толкование помимо слова.
+      const rest = shuffle(pool.filter((s) => s.slug !== sign.slug && explanation(s)).map((s) => s.slug), rand).slice(0, 2);
+      questions.push({ type, sign: sign.slug, options: shuffle([sign.slug, ...rest], rand) });
+    } else if (type === "truefalse") {
+      // Подпись верна в половине случаев, иначе — другое слово той же категории.
+      questions.push({ type, sign: sign.slug, shown: rand() < 0.5 ? sign.slug : others(sign.slug, 1)[0] });
     } else if (type === "similar" && similar.length) {
       // Похожий жест обязателен среди вариантов, остальные — из той же категории.
       const rest = others(sign.slug, 3).filter((s) => s !== similar[0]).slice(0, 1);
       questions.push({ type, sign: sign.slug, options: shuffle([sign.slug, similar[0], ...rest], rand) });
     } else {
-      const kind = type === "similar" || type === "match" ? "recognize" : type;
+      const kind = type === "similar" || type === "match" || type === "explain" ? "recognize" : type;
       const count = kind === "recognize" ? 4 : 3;
       questions.push({ type: kind, sign: sign.slug, options: shuffle([sign.slug, ...others(sign.slug, count - 1)], rand) });
     }
@@ -99,10 +117,12 @@ export function scoreExam(questions: Question[], wrong: Set<string>, kinds: Reco
   };
 }
 
-/** Детский экзамен (ТЗ, п. 5): 1–3 звезды по доле ответов с первой попытки; дошёл до конца — хотя бы одна. */
-export function stars(correct: number, total: number): 1 | 2 | 3 {
+/** Детский экзамен (сверка с заказчиком 2026-11-10): ступени 3 / 5 / 10 звёзд по ответам с первой попытки —
+ *  дошёл до конца — 3, хорошо (от 60 %) — 5, без ошибок — 10. */
+export const STAR_TIERS = [3, 5, 10] as const;
+export function stars(correct: number, total: number): 3 | 5 | 10 {
   const share = total ? correct / total : 0;
-  return share >= 0.9 ? 3 : share >= 0.6 ? 2 : 1;
+  return share >= 1 ? 10 : share >= 0.6 ? 5 : 3;
 }
 
 /** Рекомендация по правилам (ТЗ, п. 7): не ИИ, а заранее заданные условия. */

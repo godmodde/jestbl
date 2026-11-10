@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { SignGrid } from "@/components/sign-grid";
 import { Arrow, ButtonLink, Icon } from "@/components/ui";
 import { currentDevice } from "@/lib/device-server";
-import { getCategory } from "@/lib/directions";
+import { ALL_WORDS, getCategory } from "@/lib/directions";
 import { canExam } from "@/lib/exam";
 import { plural } from "@/lib/plural";
 
@@ -21,6 +21,9 @@ export default async function CategoryPage({ params }: Params) {
   if (!data) notFound();
   const { category, signs, pool, last } = data;
   const learned = signs.filter((s) => s.state.learned).length;
+  // «Все слова А–Я» — по буквам, с указателем: двести слов одной сеткой не просмотреть.
+  const letters = category.slug === ALL_WORDS.slug
+    ? Object.entries(Object.groupBy(signs, (s) => s.title[0].toUpperCase().replace("Ё", "Е"))) : null;
 
   return (
     <div className="grid gap-12 pt-4">
@@ -34,11 +37,28 @@ export default async function CategoryPage({ params }: Params) {
           </div>
           <div className="flex flex-wrap gap-3">
             <ButtonLink href={`/adults/${category.slug}/practice`}>Практика <Arrow /></ButtonLink>
+            {canExam(pool) && <ButtonLink href={`/adults/${category.slug}/speed`} variant="ghost">На скорость</ButtonLink>}
             {canExam(pool) && <ButtonLink href={`/adults/${category.slug}/exam`} variant="ghost">Экзамен</ButtonLink>}
           </div>
         </div>
       </header>
-      <SignGrid signs={signs} showCategory={false} />
+      {letters ? (
+        <div className="grid gap-10">
+          <nav aria-label="Буквы" className="flex flex-wrap gap-1">
+            {letters.map(([l]) => (
+              <a key={l} href={`#bukva-${l}`} className="grid size-11 place-content-center rounded-full font-display text-lg font-semibold transition-colors hover:bg-track">{l}</a>
+            ))}
+          </nav>
+          {letters.map(([l, group]) => (
+            <section key={l} id={`bukva-${l}`} aria-labelledby={`h-${l}`} className="grid scroll-mt-6 gap-5">
+              <h2 id={`h-${l}`} className="m-0 font-display text-[32px] leading-none font-semibold tracking-[-0.02em]">{l}</h2>
+              <SignGrid signs={group!} />
+            </section>
+          ))}
+        </div>
+      ) : (
+        <SignGrid signs={signs} showCategory={false} />
+      )}
     </div>
   );
 }

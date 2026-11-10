@@ -8,7 +8,7 @@ import { currentDevice } from "@/lib/device-server";
 import { getAlphabet, KIND_TITLES } from "@/lib/directions";
 import { buildQuestions } from "@/lib/exam";
 
-export const metadata: Metadata = { title: "Проверка букв" };
+export const metadata: Metadata = { title: "Тест по буквам" };
 
 // Проверка группы без подсказок (ТЗ, п. 5): правильный ответ не показываем, итог — в конце.
 export default async function LetterCheckPage({ params }: { params: Promise<{ group: string }> }) {
@@ -22,7 +22,7 @@ export default async function LetterCheckPage({ params }: { params: Promise<{ gr
   const pool = letters.map((l) => ({ slug: l.slug, title: l.title, meaning: l.meaning, kind: l.kind, similar: [] }));
   const next = groups[i + 1];
   return (
-    <ExamRunner mode="exam" title={`Проверка · ${groups[i].title}`} cards={cards} kindTitles={KIND_TITLES}
+    <ExamRunner mode="exam" title={`Тест · ${groups[i].title}`} cards={cards} kindTitles={KIND_TITLES}
       questions={buildQuestions(pool, randomUUID(), { types: ["recognize", "find"], size: letters.length })}
       save={{ lesson: slug }} back={{ href: "/alphabet", label: "Алфавит" }}
       next={next ? { href: `/alphabet/check/${next.slug}`, title: `Буквы ${next.title}` } : null} />

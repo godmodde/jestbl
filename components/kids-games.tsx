@@ -2,18 +2,31 @@
 /* eslint-disable @next/next/no-img-element -- наклейки: готовые PNG 256 px с заданным размером, оптимизатор не нужен */
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Stars, StationIcon } from "@/components/kids-album";
+import { CameraCheck } from "@/components/camera-check";
+import { LetterGlyph, StarBurst, StationIcon } from "@/components/kids-album";
+import { TraceCanvas } from "@/components/trace-canvas";
 import { Arrow, btn, Icon } from "@/components/ui";
 import { send } from "@/lib/client-api";
 import { rng, shuffle, stars as starsFor } from "@/lib/exam";
+import type { Templates } from "@/lib/handshape";
 
 // Пять детских механик и экзамен (ТЗ, п. 5). Каждая тренирует своё: узнать жест по картинке, связать жест с предметом,
 // понять просьбу, удержать серию, различить жесты. Ошибка — мягкая подсказка и ещё попытка, без штрафа.
 
 export type KidSign = { slug: string; title: string; picture: string | null; videoUrl: string | null };
-type Game = { signs: KidSign[]; rand: () => number; onFinish: (result?: { correct: number; total: number; mistakes: string[] }) => void };
+type Game = {
+  signs: KidSign[]; rand: () => number; onFinish: (result?: { correct: number; total: number; mistakes: string[] }) => void;
+  /** Образцы формы руки для теста «Покажи букву»; null — камеры нет, тест идёт выбором. */
+  templates?: Templates | null;
+  /** Малыши 3–5 (сверка с заказчиком 2026-11-10): два варианта вместо трёх, меньше раундов. */
+  small?: boolean;
+};
+
+// У малышей два варианта ответа: сетка в два столбца.
+const cols = (small?: boolean) => (small ? "grid-cols-2" : "grid-cols-3");
 
 const pic = (s: KidSign) => `/pictures/${s.picture}`;
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -131,16 +144,16 @@ function useChoice(onRight: (firstTry: boolean) => void) {
   return { pick, state, missed: wrong.length > 0, misses: wrong.length };
 }
 
-function rounds(signs: KidSign[], rand: () => number, count: number) {
+function rounds(signs: KidSign[], rand: () => number, count: number, small?: boolean) {
   return shuffle(signs, rand).slice(0, count).map((answer) => ({
     answer,
-    options: shuffle([answer, ...shuffle(signs.filter((s) => s.slug !== answer.slug), rand).slice(0, 2)], rand),
+    options: shuffle([answer, ...shuffle(signs.filter((s) => s.slug !== answer.slug), rand).slice(0, small ? 1 : 2)], rand),
   }));
 }
 
 // 1. Найди жест: картинка → какое из трёх видео её показывает.
-function FindGame({ signs, rand, onFinish }: Game) {
-  const list = useMemo(() => rounds(signs, rand, 4), [signs, rand]);
+function FindGame({ signs, rand, onFinish, small }: Game) {
+  const list = useMemo(() => rounds(signs, rand, small ? 3 : 4, small), [signs, rand, small]);
   const [at, setAt] = useState(0);
   const { pick, state, missed } = useChoice(() => (at + 1 < list.length ? setAt(at + 1) : onFinish()));
   const r = list[at];
@@ -150,7 +163,7 @@ function FindGame({ signs, rand, onFinish }: Game) {
       <div className="grid justify-items-center gap-3">
         <img src={pic(r.answer)} alt={r.answer.title} width={176} height={176} className="sticker size-36 md:size-44" />
       </div>
-      <div key={at} className="mx-auto grid w-full max-w-4xl gap-4 sm:grid-cols-3">
+      <div key={at} className={`mx-auto grid w-full gap-4 ${small ? "max-w-2xl sm:grid-cols-2" : "max-w-4xl sm:grid-cols-3"}`}>
         {r.options.map((o, i) => <VideoButton key={o.slug} sign={o} index={i} state={state(o.slug)} onClick={() => pick(o.slug, r.answer.slug)} />)}
       </div>
       <Hint text={missed ? "Посмотри ещё раз на руки" : null} />
@@ -159,11 +172,12 @@ function FindGame({ signs, rand, onFinish }: Game) {
 }
 
 // 2. Собери пару: три видео и три картинки — соединить каждое видео со своей картинкой.
-function PairGame({ signs, rand, onFinish }: Game) {
+function PairGame({ signs, rand, onFinish, small }: Game) {
   const groups = useMemo(() => {
     const all = shuffle(signs, rand);
-    return [all.slice(0, 3), all.slice(3, 6)].filter((g) => g.length === 3).map((g) => ({ videos: g, pictures: shuffle(g, rand) }));
-  }, [signs, rand]);
+    const n = small ? 2 : 3;
+    return [all.slice(0, n), all.slice(n, n * 2)].filter((g) => g.length === n).map((g) => ({ videos: g, pictures: shuffle(g, rand) }));
+  }, [signs, rand, small]);
   const [at, setAt] = useState(0);
   const [held, setHeld] = useState<string | null>(null);
   const [done, setDone] = useState<string[]>([]);
@@ -183,13 +197,13 @@ function PairGame({ signs, rand, onFinish }: Game) {
     <div className="grid gap-8">
       <Dots total={groups.length} at={at} />
       <div key={at} className="grid gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,1fr)] md:gap-7">
-        <div className="grid grid-cols-3 gap-3">
+        <div className={`grid gap-3 ${cols(small)}`}>
           {g.videos.map((v, i) => (
             <VideoButton key={v.slug} sign={v} index={i} disabled={done.includes(v.slug)}
               state={done.includes(v.slug) ? "right" : held === v.slug ? "picked" : "idle"} onClick={() => setHeld(v.slug)} />
           ))}
         </div>
-        <div className="grid grid-cols-3 gap-3 md:grid-cols-1">
+        <div className={`grid gap-3 md:grid-cols-1 ${cols(small)}`}>
           {g.pictures.map((p) => (
             <PictureButton key={p.slug} sign={p} disabled={!held && !done.includes(p.slug)}
               state={done.includes(p.slug) ? "right" : miss === p.slug ? "wrong" : "idle"} onClick={() => choose(p.slug)} />
@@ -202,8 +216,8 @@ function PairGame({ signs, rand, onFinish }: Game) {
 }
 
 // 3. Накорми друга: друг просит жестом — ребёнок даёт нужный предмет. Понимание просьбы, а не перевод слова.
-function FeedGame({ signs, rand, onFinish }: Game) {
-  const list = useMemo(() => rounds(signs, rand, 4), [signs, rand]);
+function FeedGame({ signs, rand, onFinish, small }: Game) {
+  const list = useMemo(() => rounds(signs, rand, small ? 3 : 4, small), [signs, rand, small]);
   const [at, setAt] = useState(0);
   const [fed, setFed] = useState(false);
   const { pick, state, missed, misses } = useChoice(() => { setFed(false); if (at + 1 < list.length) setAt(at + 1); else onFinish(); });
@@ -220,7 +234,7 @@ function FeedGame({ signs, rand, onFinish }: Game) {
           <KidVideo sign={r.answer} label="Что просит мишка" replay={misses} />
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className={`grid gap-3 ${cols(small)}`}>
         {r.options.map((o) => (
           <PictureButton key={o.slug} sign={o} state={state(o.slug)} onClick={() => { if (o.slug === r.answer.slug) setFed(true); void pick(o.slug, r.answer.slug); }} />
         ))}
@@ -231,8 +245,8 @@ function FeedGame({ signs, rand, onFinish }: Game) {
 }
 
 // 4. Пройди маршрут: шесть клеток, каждый верный ответ — шаг вперёд. Держать внимание на серии.
-function RouteGame({ signs, rand, onFinish }: Game) {
-  const list = useMemo(() => rounds(signs, rand, signs.length), [signs, rand]);
+function RouteGame({ signs, rand, onFinish, small }: Game) {
+  const list = useMemo(() => rounds(signs, rand, small ? 4 : signs.length, small), [signs, rand, small]);
   const [at, setAt] = useState(0);
   const { pick, state, missed, misses } = useChoice(() => (at + 1 < list.length ? setAt(at + 1) : (setAt(list.length), void wait(600).then(() => onFinish()))));
   const r = list[Math.min(at, list.length - 1)];
@@ -251,7 +265,7 @@ function RouteGame({ signs, rand, onFinish }: Game) {
       {at < list.length && (
         <div key={at} className="grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] md:gap-10">
           <div className="w-full max-w-[360px]"><KidVideo sign={r.answer} label="Жест" replay={misses} /></div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className={`grid gap-3 ${cols(small)}`}>
             {r.options.map((o) => <PictureButton key={o.slug} sign={o} state={state(o.slug)} onClick={() => pick(o.slug, r.answer.slug)} />)}
           </div>
         </div>
@@ -299,8 +313,8 @@ function DiffGame({ signs, rand, onFinish }: Game) {
 }
 
 // 6. Экзамен: шесть вопросов вперемешку; звёзды — за ответы с первой попытки (ТЗ: скорость не условие).
-function ExamGame({ signs, rand, onFinish }: Game) {
-  const list = useMemo(() => rounds(signs, rand, 6).map((r, i) => ({ ...r, kind: i % 2 ? "video" : "picture" })), [signs, rand]);
+function ExamGame({ signs, rand, onFinish, small }: Game) {
+  const list = useMemo(() => rounds(signs, rand, small ? 4 : 6, small).map((r, i) => ({ ...r, kind: i % 2 ? "video" : "picture" })), [signs, rand, small]);
   const [at, setAt] = useState(0);
   const first = useRef<string[]>([]);
   const mistakes = useRef<string[]>([]);
@@ -316,14 +330,14 @@ function ExamGame({ signs, rand, onFinish }: Game) {
       {r.kind === "picture" ? (
         <div key={at} className="grid gap-6">
           <img src={pic(r.answer)} alt={r.answer.title} width={176} height={176} className="sticker size-36 justify-self-center md:size-44" />
-          <div className="mx-auto grid w-full max-w-4xl gap-4 sm:grid-cols-3">
+          <div className={`mx-auto grid w-full gap-4 ${small ? "max-w-2xl sm:grid-cols-2" : "max-w-4xl sm:grid-cols-3"}`}>
             {r.options.map((o, i) => <VideoButton key={o.slug} sign={o} index={i} state={state(o.slug)} onClick={() => pick(o.slug, r.answer.slug)} />)}
           </div>
         </div>
       ) : (
         <div key={at} className="grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] md:gap-10">
           <div className="w-full max-w-[360px]"><KidVideo sign={r.answer} label="Жест" replay={misses} /></div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className={`grid gap-3 ${cols(small)}`}>
             {r.options.map((o) => <PictureButton key={o.slug} sign={o} state={state(o.slug)} onClick={() => pick(o.slug, r.answer.slug)} />)}
           </div>
         </div>
@@ -333,11 +347,128 @@ function ExamGame({ signs, rand, onFinish }: Game) {
   );
 }
 
+// ——— Алфавит (решение заказчика 2026-11-10): обвести, найти букву по жесту, показать букву рукой ———
+
+/** Кнопка-буква: заглавная и строчная крупно — ребёнок узнаёт букву, а не читает слово. */
+function LetterButton({ sign, state, onClick }: { sign: KidSign; state: "idle" | "right" | "wrong"; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} aria-label={`Буква ${sign.title}`}
+      className={`press grid min-h-32 place-items-center rounded-[22px] border-[2.5px] bg-surface transition-colors
+        ${state === "right" ? "border-accent bg-accent-soft text-accent" : state === "wrong" ? "anim-nudge border-line opacity-60" : "border-transparent hover:border-line"}`}>
+      <LetterGlyph title={sign.title} className="text-[clamp(52px,7vw,80px)]" />
+    </button>
+  );
+}
+
+/** Вопросы «жест → буква»: каждая буква с видео по разу, варианты — две другие буквы группы. */
+function letterRounds(signs: KidSign[], rand: () => number) {
+  return shuffle(signs.filter((s) => s.videoUrl), rand).map((answer) => ({
+    answer,
+    options: shuffle([answer, ...shuffle(signs.filter((s) => s.slug !== answer.slug), rand).slice(0, 2)], rand),
+  }));
+}
+
+type LetterRound = ReturnType<typeof letterRounds>[number];
+
+function LetterQuestion({ r, misses, state, pick }: { r: LetterRound; misses: number; state: (slug: string) => "idle" | "right" | "wrong"; pick: (slug: string, answer: string) => void }) {
+  return (
+    <div className="grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] md:gap-10">
+      {/* На телефоне видео меньше: буквы-ответы остаются в первом экране. */}
+      <div className="mx-auto w-full max-w-[240px] md:max-w-[360px]"><KidVideo sign={r.answer} label="Жест буквы" replay={misses} /></div>
+      <div role="group" aria-label="Какая это буква?" className="grid grid-cols-3 gap-3">
+        {r.options.map((o) => <LetterButton key={o.slug} sign={o} state={state(o.slug)} onClick={() => pick(o.slug, r.answer.slug)} />)}
+      </div>
+    </div>
+  );
+}
+
+const NoVideo = () => <p className="m-0 py-16 text-center text-ink-2">Видео букв появятся после съёмки</p>;
+
+// Обведи букву: каждая буква группы — заглавная, потом строчная, рядом её жест. Обводку можно пропустить.
+function TraceGame({ signs, onFinish }: Game) {
+  const steps = useMemo(() => signs.flatMap((s) => [{ sign: s, glyph: s.title }, { sign: s, glyph: s.title.toLowerCase() }]), [signs]);
+  const [at, setAt] = useState(0);
+  const step = steps[at];
+  const next = () => (at + 1 < steps.length ? setAt(at + 1) : onFinish());
+  return (
+    <div className="grid gap-8">
+      <Dots total={signs.length} at={Math.floor(at / 2)} />
+      <div className="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] md:gap-10">
+        <div className="mx-auto w-full max-w-[220px] md:max-w-[320px]"><KidVideo sign={step.sign} label={`Жест буквы ${step.sign.title}`} /></div>
+        {/* Обводка — сама задача: на телефоне поле первым, жест-подсказка под ним. */}
+        <div className="mx-auto w-full max-w-[min(100%,calc((100svh-420px)*100/140))] max-md:order-first">
+          <TraceCanvas letter={step.glyph} onDone={async () => { await wait(CORRECT_PAUSE); next(); }} onSkip={next} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Найди букву: жест → одна из трёх букв. Ошибка — жест повторяется медленнее, буква мягко качается.
+function ChooseGame({ signs, rand, onFinish }: Game) {
+  const list = useMemo(() => letterRounds(signs, rand), [signs, rand]);
+  const [at, setAt] = useState(0);
+  const { pick, state, missed, misses } = useChoice(() => (at + 1 < list.length ? setAt(at + 1) : onFinish()));
+  if (!list.length) return <NoVideo />;
+  return (
+    <div className="grid gap-8">
+      <Dots total={list.length} at={at} />
+      <LetterQuestion key={at} r={list[at]} misses={misses} state={state} pick={pick} />
+      <Hint text={missed ? "Посмотри на руки ещё раз" : null} />
+    </div>
+  );
+}
+
+// Покажи букву (тест): камера проверяет форму руки, без камеры — тот же вопрос выбором. Звёзды — за ответы с первой попытки.
+function ShowGame({ signs, rand, onFinish, templates }: Game) {
+  const list = useMemo(() => letterRounds(signs, rand), [signs, rand]);
+  const [camera, setCamera] = useState(!!templates);
+  const [granted, setGranted] = useState(false);
+  const [at, setAt] = useState(0);
+  const failed = useRef(false);
+  const first = useRef<string[]>([]);
+  const mistakes = useRef<string[]>([]);
+  const advance = (firstTry: boolean) => {
+    (firstTry ? first : mistakes).current.push(list[at].answer.slug);
+    failed.current = false;
+    if (at + 1 < list.length) setAt(at + 1);
+    else onFinish({ correct: first.current.length, total: list.length, mistakes: mistakes.current });
+  };
+  const choice = useChoice(advance);
+  if (!list.length) return <NoVideo />;
+  const r = list[at];
+  return (
+    <div className="grid gap-8">
+      <Dots total={list.length} at={at} />
+      {camera && templates ? (
+        <div className="mx-auto grid w-full max-w-2xl gap-5">
+          {/* Со второй буквы камера включается сама: доступ уже дан. Неудача — ошибка первой попытки, но можно ещё раз. */}
+          <CameraCheck key={at} letter={r.answer.title} templates={templates} autoStart={granted}
+            onResult={async (ok) => {
+              setGranted(true);
+              if (!ok) { failed.current = true; return; }
+              await wait(CORRECT_PAUSE);
+              advance(!failed.current);
+            }}
+            onNoCamera={() => setCamera(false)} />
+          <button type="button" onClick={() => setCamera(false)} className={`${btn.ghost} justify-self-center`}>Без камеры</button>
+        </div>
+      ) : (
+        <>
+          <LetterQuestion key={at} r={r} misses={choice.misses} state={choice.state} pick={choice.pick} />
+          <Hint text={choice.missed ? "Ничего страшного — попробуй ещё раз" : null} />
+        </>
+      )}
+    </div>
+  );
+}
+
 const GAMES: Record<string, (g: Game) => React.ReactNode> = {
   find: FindGame, pair: PairGame, feed: FeedGame, route: RouteGame, diff: DiffGame, exam: ExamGame,
+  trace: TraceGame, choose: ChooseGame, show: ShowGame,
 };
 
-export function KidsGame({ kind, title, signs, seed, topic, station, reward }: {
+export function KidsGame({ kind, title, signs, seed, topic, station, reward, templates = null, small = false }: {
   kind: string;
   title: string;
   signs: KidSign[];
@@ -345,9 +476,13 @@ export function KidsGame({ kind, title, signs, seed, topic, station, reward }: {
   topic: { slug: string; title: string };
   station: string;
   reward: KidSign | null;
+  templates?: Templates | null;
+  small?: boolean;
 }) {
   const rand = useMemo(() => rng(seed), [seed]);
+  const router = useRouter();
   const [stars, setStars] = useState<number | null>(null);
+  const [passed, setPassed] = useState<KidSign[]>([]);
   const [done, setDone] = useState(false);
   const Game = GAMES[kind] ?? FindGame;
 
@@ -355,8 +490,11 @@ export function KidsGame({ kind, title, signs, seed, topic, station, reward }: {
     setDone(true);
     if (result) {
       setStars(starsFor(result.correct, result.total));
-      const passed = signs.map((s) => s.slug).filter((s) => !result.mistakes.includes(s));
-      void send("/exams", "POST", { lesson: station, total: result.total, correct: result.correct, mistakes: result.mistakes, passed });
+      const ok = signs.filter((s) => !result.mistakes.includes(s.slug));
+      setPassed(ok);
+      // После сохранения — обновить серверную часть: копилка в шапке детского мира иначе показала бы старое число.
+      void send("/exams", "POST", { lesson: station, total: result.total, correct: result.correct, mistakes: result.mistakes, passed: ok.map((s) => s.slug) })
+        .then(() => router.refresh());
     } else {
       void send(`/lessons/${station}/progress`, "PUT", { step: 0, completed: true });
     }
@@ -376,15 +514,23 @@ export function KidsGame({ kind, title, signs, seed, topic, station, reward }: {
       </header>
 
       {!done ? (
-        <Game signs={signs} rand={rand} onFinish={finish} />
+        <Game signs={signs} rand={rand} onFinish={finish} templates={templates} small={small} />
       ) : (
         <section aria-live="polite" className="grid justify-items-center gap-6 py-10 text-center">
-          {kind === "exam" ? (
+          {kind === "exam" || kind === "show" ? (
             <>
-              <span className="anim-pop"><Stars n={stars ?? 1} size={72} /></span>
-              <h2 className="m-0 font-display text-[clamp(32px,4vw,48px)] font-semibold tracking-[-0.03em]">{stars === 3 ? "Отлично!" : stars === 2 ? "Хорошо!" : "Получилось!"}</h2>
+              <StarBurst n={stars ?? 3} />
+              <h2 className="m-0 font-display text-[clamp(32px,4vw,48px)] font-semibold tracking-[-0.03em]">{stars === 10 ? "Отлично!" : stars === 5 ? "Хорошо!" : "Получилось!"}</h2>
             </>
+          ) : !reward ? (
+            <h2 className="anim-pop m-0 font-display text-[clamp(32px,4vw,48px)] font-semibold tracking-[-0.03em]">Готово!</h2>
           ) : null}
+          {/* Верно показанные буквы ложатся в альбом наклейками. */}
+          {kind === "show" && passed.length > 0 && (
+            <ul aria-label="Новые наклейки" className="m-0 flex list-none flex-wrap justify-center gap-4 p-0">
+              {passed.map((s, i) => <li key={s.slug}><LetterGlyph title={s.title} sticker className={`sticker-land text-[clamp(48px,6vw,72px)] ${i % 2 ? "rotate-3" : "-rotate-3"}`} /></li>)}
+            </ul>
+          )}
           {reward && (
             <>
               <img src={pic(reward)} alt="" width={200} height={200} className="sticker sticker-land size-40 -rotate-3 md:size-48" />

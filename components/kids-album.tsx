@@ -5,16 +5,30 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { Icon } from "@/components/ui";
-import type { KidsTopic, Sticker } from "@/lib/directions";
+import { plural } from "@/lib/plural";
+import type { KidsTopic, KidsWorld, Sticker } from "@/lib/directions";
 
 // Детский альбом (бриф .impeccable/surfaces): тема — разворот, игра вклеивает наклейку, нажатие на наклейку снова показывает жест.
 
 const TILT = ["-rotate-6", "rotate-3", "-rotate-2", "rotate-6", "-rotate-3", "rotate-2"];
 
+/** Звёзды ступенями 3 / 5 / 10 (сверка с заказчиком 2026-11-10): в альбоме и закладках — значок и число. */
 export function Stars({ n, size = 20, label = true }: { n: number; size?: number; label?: boolean }) {
   return (
-    <span role={label ? "img" : undefined} aria-label={label ? `${n} из 3 звёзд` : undefined} aria-hidden={label ? undefined : true} className="inline-flex gap-0.5 text-star">
-      {[1, 2, 3].map((i) => <Icon key={i} name={i <= n ? "star-fill" : "star"} size={size} />)}
+    <span role={label ? "img" : undefined} aria-label={label ? `${n} ${plural(n, ["звезда", "звезды", "звёзд"])}` : undefined} aria-hidden={label ? undefined : true}
+      style={{ fontSize: size }} className={`inline-flex items-center gap-1 leading-none font-display font-semibold tabular-nums ${n ? "text-star" : "text-muted"}`}>
+      <Icon name={n ? "star-fill" : "star"} size={size} />{n}
+    </span>
+  );
+}
+
+/** Итог экзамена: россыпь из 3, 5 или 10 звёзд, по одной вспыхивают. */
+export function StarBurst({ n }: { n: number }) {
+  return (
+    <span role="img" aria-label={`${n} ${plural(n, ["звезда", "звезды", "звёзд"])}`} className={`${n > 5 ? "grid grid-cols-5 sm:inline-flex" : "inline-flex"} justify-center gap-1 text-star`}>
+      {Array.from({ length: n }, (_, i) => (
+        <span key={i} className="anim-pop" style={{ animationDelay: `${i * 70}ms` }}><Icon name="star-fill" size={n > 5 ? 44 : 64} /></span>
+      ))}
     </span>
   );
 }
@@ -28,11 +42,38 @@ export function StationIcon({ kind, size = 28 }: { kind: string; size?: number }
     route: <><circle cx="5" cy="18" r="2" /><circle cx="19" cy="6" r="2" /><path d="M7 18h6a3 3 0 0 0 0-6h-2a3 3 0 0 1 0-6h6" /></>,
     diff: <><path d="M4 9h7M4 15h7" /><path d="M14 8h6M14 16h6M19 5l-4 14" /></>,
     exam: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z" />,
+    trace: <><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="m13 7 4 4" /></>,
+    choose: <><rect x="2.5" y="7" width="5.5" height="10" rx="1.5" /><rect x="9.25" y="7" width="5.5" height="10" rx="1.5" /><rect x="16" y="7" width="5.5" height="10" rx="1.5" /></>,
+    show: <path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11M11 10V4.5a1.5 1.5 0 0 1 3 0V11M14 10.5V6a1.5 1.5 0 0 1 3 0v7c0 4-2.5 7-6 7-2.6 0-4.2-1.4-5.6-3.7L3.2 13a1.5 1.5 0 0 1 2.5-1.6L8 14" />,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {paths[kind] ?? paths.find}
     </svg>
+  );
+}
+
+/** Буква как наклейка: заглавная и строчная; вклеенная — с белой вырубкой по контуру, как картинки альбома. */
+export function LetterGlyph({ title, sticker = false, className = "" }: { title: string; sticker?: boolean; className?: string }) {
+  return (
+    <span aria-hidden="true" className={`inline-block font-display leading-none font-semibold tracking-[-0.03em] ${sticker ? "sticker text-accent" : ""} ${className}`}>
+      {title}{title.toLowerCase()}
+    </span>
+  );
+}
+
+/** Два альбома детского мира — переключатель сверху: значок темы и «Аа» понятны без чтения. */
+function WorldSwitch({ world }: { world: KidsWorld }) {
+  const tab = "inline-flex min-h-14 items-center gap-2.5 rounded-full px-5 font-semibold text-ink-2 transition-colors aria-[current=page]:bg-surface aria-[current=page]:text-ink aria-[current=page]:shadow-[0_8px_20px_-14px_rgba(29,28,26,0.5)]";
+  return (
+    <nav aria-label="Альбомы" className="flex w-fit gap-1 rounded-full bg-track p-1">
+      <Link href="/kids" aria-current={world === "kids" ? "page" : undefined} className={tab}>
+        <img src="/pictures/kot.png" alt="" width={28} height={28} className="size-7" /> Темы
+      </Link>
+      <Link href="/kids/alphabet" aria-current={world === "kids-alphabet" ? "page" : undefined} className={tab}>
+        <span aria-hidden="true" className="font-display text-xl leading-none">Аа</span> Буквы
+      </Link>
+    </nav>
   );
 }
 
@@ -50,20 +91,25 @@ function Viewer({ sticker }: { sticker: Sticker }) {
       </div>
       <figcaption className="flex items-center gap-3">
         {sticker.picture && <img src={`/pictures/${sticker.picture}`} alt="" width={44} height={44} className="sticker size-11" />}
-        <span className="font-display text-[28px] leading-none font-semibold tracking-[-0.02em]">{sticker.title}</span>
+        <span className="font-display text-[28px] leading-none font-semibold tracking-[-0.02em]">{sticker.picture ? sticker.title : `${sticker.title}${sticker.title.toLowerCase()}`}</span>
       </figcaption>
     </figure>
   );
 }
 
-export function KidsAlbum({ topics, current, fresh }: { topics: KidsTopic[]; current: string; fresh?: string }) {
+export function KidsAlbum({ topics, current, fresh, world = "kids", small = false }: {
+  topics: KidsTopic[]; current: string; fresh?: string; world?: KidsWorld; small?: boolean;
+}) {
   const topic = topics.find((t) => t.slug === current)!;
-  const nextIndex = topic.stations.findIndex((s) => s.open && !s.completed);
+  const letters = world === "kids-alphabet";
   const earned = topic.stickers.filter((s) => s.earned);
-  const [selected, setSelected] = useState(fresh ?? (topic.stickers[nextIndex] ?? earned.at(-1) ?? topic.stickers[0])?.slug);
+  const [selected, setSelected] = useState(fresh ?? topic.stickers.find((s) => !s.earned)?.slug ?? topic.stickers[0]?.slug);
   const shown = topic.stickers.find((s) => s.slug === selected) ?? topic.stickers[0];
 
   return (
+    <div className="grid gap-6">
+    {/* Малышам 3–5 буквы рано — у них только темы. */}
+    {!small && <WorldSwitch world={world} />}
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start lg:gap-10">
       <section aria-labelledby="topic" className="relative grid gap-10 rounded-[28px] bg-surface p-[clamp(20px,3vw,48px)] shadow-[0_30px_60px_-44px_rgba(29,28,26,0.45)] md:grid-cols-2 md:gap-[clamp(40px,5vw,96px)]">
         {/* Корешок разворота. */}
@@ -75,32 +121,44 @@ export function KidsAlbum({ topics, current, fresh }: { topics: KidsTopic[]; cur
             <h1 id="topic" className="m-0 font-display text-[clamp(40px,4.5vw,64px)] leading-[0.95] font-semibold tracking-[-0.035em]">{topic.title}</h1>
             <Stars n={topic.stars} size={26} />
           </div>
-          <ol aria-label="Наклейки темы" className="m-0 grid list-none grid-cols-3 gap-[clamp(12px,1.6vw,24px)] p-0">
-            {topic.stations.map((station, i) => {
-              const sticker = topic.stickers[i];
-              const isNext = i === nextIndex;
-              // flex, а не grid с place-content: в дорожке по содержимому проценты у картинки схлопываются.
-              const slot = "relative flex aspect-square items-center justify-center rounded-[22px]";
+          {/* База (сверка с заказчиком 2026-11-10, «всё как у взрослых»): любой жест можно открыть и посмотреть.
+              Вклеенные — цветные: в темах их дают игры, в буквах — тест. */}
+          <ol aria-label={letters ? "Буквы группы" : "Жесты темы"} className="m-0 grid list-none grid-cols-3 gap-[clamp(12px,1.6vw,24px)] p-0">
+            {topic.stickers.map((s, i) => (
+              <li key={s.slug}>
+                <button type="button" onClick={() => setSelected(s.slug)} aria-pressed={selected === s.slug}
+                  aria-label={`${letters ? `Буква ${s.title}` : s.title}${s.earned ? ", наклейка" : ""}. Показать жест`}
+                  className={`flex aspect-square w-full items-center justify-center rounded-[22px] transition-colors hover:bg-track/50 aria-pressed:bg-stage/70 ${s.earned ? "" : "border-2 border-dashed border-line"}`}>
+                  {letters ? (
+                    <LetterGlyph title={s.title} sticker={s.earned} className={`text-[clamp(40px,5vw,64px)] ${s.earned ? TILT[i % TILT.length] : "text-ink-2"}`} />
+                  ) : s.earned ? (
+                    <img src={`/pictures/${s.picture}`} alt="" width={120} height={120} className={`sticker h-auto w-[86%] ${TILT[i % TILT.length]} ${fresh === s.slug ? "sticker-land" : ""}`} />
+                  ) : (
+                    <img src={`/pictures/${s.picture}`} alt="" width={96} height={96} className="h-auto w-[62%] opacity-35 grayscale" />
+                  )}
+                </button>
+              </li>
+            ))}
+          </ol>
+          <ol aria-label={letters ? "Задания" : "Игры"} className="m-0 grid list-none grid-cols-3 gap-3 p-0">
+            {topic.stations.map((st) => {
+              const body = (
+                <>
+                  <StationIcon kind={st.kind} size={30} />
+                  <span className="text-[15px] leading-tight font-semibold">{st.title}</span>
+                  {st.completed && <span className="absolute top-2 right-2 grid size-6 place-content-center rounded-full bg-accent text-white"><Icon name="check" size={14} /></span>}
+                </>
+              );
+              const cls = "relative grid min-h-28 content-center justify-items-center gap-2 rounded-[22px] p-3 text-center";
               return (
-                <li key={station.slug}>
-                  {sticker?.earned ? (
-                    <button type="button" onClick={() => setSelected(sticker.slug)} aria-pressed={selected === sticker.slug}
-                      aria-label={`Наклейка «${sticker.title}». Показать жест`}
-                      className={`${slot} w-full transition-colors hover:bg-track/50 aria-pressed:bg-stage/70`}>
-                      <img src={`/pictures/${sticker.picture}`} alt="" width={120} height={120}
-                        className={`sticker w-[86%] h-auto ${TILT[i]} ${fresh === sticker.slug ? "sticker-land" : ""}`} />
-                    </button>
-                  ) : isNext ? (
-                    <Link href={`/kids/${topic.slug}/${station.slug}`} aria-label={`Играть: ${station.title}`}
-                      className={`${slot} flex-col gap-2 border-[2.5px] border-dashed border-accent bg-accent-soft text-accent transition-colors hover:bg-stage-deep`}>
-                      <StationIcon kind={station.kind} size={34} />
-                      <span className="text-[15px] font-semibold">Играть</span>
+                <li key={st.slug}>
+                  {st.open ? (
+                    <Link href={`/kids/${topic.slug}/${st.slug}`} aria-label={`${st.completed ? "Ещё раз" : "Играть"}: ${st.title}`}
+                      className={`press ${cls} bg-accent-soft text-accent hover:bg-stage-deep ${st.completed ? "" : "border-[2.5px] border-dashed border-accent"}`}>
+                      {body}
                     </Link>
                   ) : (
-                    <span aria-label={`${station.title}: откроется позже`} className={`${slot} border-2 border-dashed border-line text-muted`}>
-                      {sticker?.picture && <img src={`/pictures/${sticker.picture}`} alt="" width={96} height={96} className="w-[62%] h-auto opacity-[0.16] grayscale" />}
-                      <span className="absolute"><StationIcon kind={station.kind} size={26} /></span>
-                    </span>
+                    <span aria-label={`${st.title}: откроется позже`} className={`${cls} border-2 border-dashed border-line text-muted`}>{body}</span>
                   )}
                 </li>
               );
@@ -110,7 +168,7 @@ export function KidsAlbum({ topics, current, fresh }: { topics: KidsTopic[]; cur
         </div>
       </section>
 
-      <nav aria-label="Темы альбома" className="-mx-[var(--gutter)] overflow-x-auto px-[var(--gutter)] lg:m-0 lg:overflow-visible lg:p-0">
+      <nav aria-label={letters ? "Группы букв" : "Темы альбома"} className="-mx-[var(--gutter)] overflow-x-auto px-[var(--gutter)] lg:m-0 lg:overflow-visible lg:p-0">
         <ul className="m-0 flex list-none gap-4 p-0 lg:grid">
           {topics.map((t, ti) => {
             const done = t.stickers.filter((s) => s.earned).length;
@@ -118,7 +176,9 @@ export function KidsAlbum({ topics, current, fresh }: { topics: KidsTopic[]; cur
               <>
                 {t.stickers[0]?.picture
                   ? <img src={`/pictures/${t.stickers[0].picture}`} alt="" width={52} height={52} className={`size-13 ${t.open ? "sticker" : "opacity-40 grayscale"}`} />
-                  : <span className="grid size-13 place-content-center rounded-full bg-track text-muted"><Icon name="lock" /></span>}
+                  : letters && t.stickers[0]
+                    ? <span className={`grid size-13 place-content-center rounded-[16px] ${t.open ? "bg-accent-soft text-accent" : "bg-track text-muted"}`}><LetterGlyph title={t.stickers[0].title} className="text-xl" /></span>
+                    : <span className="grid size-13 place-content-center rounded-full bg-track text-muted"><Icon name="lock" /></span>}
                 <span className="grid gap-1">
                   <span className="font-display text-lg leading-tight font-semibold">{t.title}</span>
                   {t.status === "soon" ? (
@@ -147,6 +207,7 @@ export function KidsAlbum({ topics, current, fresh }: { topics: KidsTopic[]; cur
           })}
         </ul>
       </nav>
+    </div>
     </div>
   );
 }

@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "app/globals.css"
+        ],
+        "createdAt": "2026-11-10T07:21:09.855Z",
+        "reason": "Сознательно (решение дизайна 2026-10-10, записано в docs/DESIGN.md «Движение»): width/height анимируются только у выведенной из потока подложки .slide-mark и у .faq::details-content (штатное раскрытие details); финальный ревьюер принял"
+      }
+    ]
+  }
+}

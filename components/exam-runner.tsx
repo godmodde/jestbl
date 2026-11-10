@@ -7,7 +7,7 @@ import { ExerciseRecall, ExerciseRecognize, Feedback, optionClass, VideoChoice, 
 import { Arrow, btn, Icon } from "@/components/ui";
 import { VideoPlayer } from "@/components/video-player";
 import { send } from "@/lib/client-api";
-import { recommend, scoreExam, targets, type ExamResult, type Question } from "@/lib/exam";
+import { explanation, recommend, scoreExam, targets, type ExamResult, type Question } from "@/lib/exam";
 import { plural } from "@/lib/plural";
 
 // Практика и экзамен по категории (ТЗ, п. 5). Практика сразу объясняет ошибку и даёт попробовать снова;
@@ -35,7 +35,7 @@ function ExamChoice({ q, cards, onAnswer, last }: { q: Extract<Question, { optio
   const [picked, setPicked] = useState<string | null>(null);
   const card = cards[q.sign];
   const next = () => onAnswer(picked === q.sign);
-  if (q.type === "recognize") {
+  if (q.type === "recognize" || q.type === "explain") {
     return (
       <div className={split}>
         <VideoPlayer src={card.videoUrl} label="Жест для вопроса" autoPlay bleed maskCaption className="lg:max-w-[min(100%,calc((100svh-370px)*16/9))]" />
@@ -45,7 +45,7 @@ function ExamChoice({ q, cards, onAnswer, last }: { q: Extract<Question, { optio
             {q.options.map((o) => (
               <button key={o} type="button" aria-pressed={picked === o} onClick={() => setPicked(o)}
                 className="flex min-h-14 items-center rounded-md border-[1.5px] border-line bg-surface px-5 text-left text-[17px] font-medium transition-colors hover:border-ink aria-pressed:border-ink aria-pressed:bg-track">
-                {cards[o].title}
+                {q.type === "explain" ? explanation(cards[o]) : cards[o].title}
               </button>
             ))}
           </div>
@@ -63,6 +63,42 @@ function ExamChoice({ q, cards, onAnswer, last }: { q: Extract<Question, { optio
         ))}
       </div>
       <Accepted ready={!!picked} onNext={next} last={last} />
+    </div>
+  );
+}
+
+/** «Верно или нет»: под жестом слово — правильно ли подписан жест. Экзамен ответ не показывает, практика разбирает сразу. */
+function TrueFalse({ q, cards, mode, onAnswer, onMistake, last }: {
+  q: Extract<Question, { type: "truefalse" }>; cards: Record<string, Card>; mode: Mode;
+  onAnswer: (ok: boolean) => void; onMistake: () => void; last: boolean;
+}) {
+  const [picked, setPicked] = useState<boolean | null>(null);
+  const truth = q.shown === q.sign;
+  const status: Status = mode === "exam" || picked === null ? "idle" : picked === truth ? "right" : "wrong";
+  const reported = useRef(false);
+  function pick(v: boolean) {
+    if (mode === "practice" && status !== "idle") return;
+    setPicked(v);
+    if (mode === "practice" && v !== truth && !reported.current) { reported.current = true; onMistake(); }
+  }
+  return (
+    <div className={split}>
+      <VideoPlayer src={cards[q.sign].videoUrl} label="Жест для вопроса" autoPlay bleed maskCaption className="lg:max-w-[min(100%,calc((100svh-370px)*16/9))]" />
+      <div className="grid gap-4">
+        <h2 tabIndex={-1} className={heading}>Это «{cards[q.shown].title}»?</h2>
+        <div role="group" aria-label="Варианты ответа" className="grid grid-cols-2 gap-2.5">
+          {[true, false].map((v) => (
+            <button key={String(v)} type="button" aria-pressed={picked === v} onClick={() => pick(v)} disabled={status === "right"}
+              className={`press flex min-h-14 items-center justify-center rounded-md border-[1.5px] px-5 text-[17px] font-medium ${mode === "exam"
+                ? "border-line bg-surface hover:border-ink aria-pressed:border-ink aria-pressed:bg-track" : optionClass(picked === v, status, v === truth)}`}>
+              {v ? "Верно" : "Неверно"}
+            </button>
+          ))}
+        </div>
+        {mode === "exam"
+          ? <Accepted ready={picked !== null} onNext={() => onAnswer(picked === truth)} last={last} />
+          : <Feedback status={status} onNext={() => onAnswer(true)} onRetry={() => setPicked(null)} nextLabel={last ? "Завершить" : "Дальше"} />}
+      </div>
     </div>
   );
 }
@@ -213,10 +249,13 @@ export function ExamRunner({ title, mode, questions, cards, save, back, next, ki
         ) : q.type === "recall" ? (
           <ExerciseRecall videoUrl={cards[q.sign].videoUrl} title={cards[q.sign].title} meaning={cards[q.sign].meaning}
             onGrade={(g) => { if (g === "again") miss([q.sign]); void send(`/signs/${q.sign}/review`, "POST", { grade: g }); advance(); }} />
+        ) : q.type === "truefalse" ? (
+          <TrueFalse q={q} cards={cards} mode={mode} last={last} onMistake={() => miss([q.sign])} onAnswer={(ok) => { if (!ok) miss([q.sign]); advance(); }} />
         ) : mode === "exam" ? (
           <ExamChoice q={q} cards={cards} last={last} onAnswer={(ok) => { if (!ok) miss([q.sign]); advance(); }} />
-        ) : q.type === "recognize" ? (
-          <ExerciseRecognize videoUrl={cards[q.sign].videoUrl} answer={q.sign} options={q.options.map((o) => ({ slug: o, title: cards[o].title }))}
+        ) : q.type === "recognize" || q.type === "explain" ? (
+          <ExerciseRecognize videoUrl={cards[q.sign].videoUrl} answer={q.sign}
+            options={q.options.map((o) => ({ slug: o, title: q.type === "explain" ? explanation(cards[o]) : cards[o].title }))}
             onMistake={() => miss([q.sign])} onDone={advance} nextLabel={last ? "Завершить" : "Дальше"} />
         ) : (
           <PracticeFind q={q} cards={cards} onMistake={() => miss([q.sign])} onDone={advance} />

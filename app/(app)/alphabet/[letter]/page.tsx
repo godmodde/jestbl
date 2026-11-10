@@ -2,12 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { LetterPractice } from "@/components/letter-practice";
-import { Icon } from "@/components/ui";
+import { Arrow, ButtonLink, Icon } from "@/components/ui";
 import { VideoPlayer } from "@/components/video-player";
 import { currentDevice } from "@/lib/device-server";
 import { getLetter } from "@/lib/directions";
-import { getDactylTemplates } from "@/lib/handshape-templates";
 
 type Params = { params: Promise<{ letter: string }> };
 
@@ -19,12 +17,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 const STATUS = { new: "Не изучена", learned: "Изучена", review: "Пора повторить" };
 
 export default async function LetterPage({ params }: Params) {
-  const [data, templates] = await Promise.all([getLetter(await currentDevice(), (await params).letter), getDactylTemplates()]);
+  const data = await getLetter(await currentDevice(), (await params).letter);
   if (!data) notFound();
   const { letter, group, prev, next } = data;
-  // Варианты для проверки без камеры — буквы той же группы с видео: соседние формы руки путаются чаще всего.
-  const others = group.letters.filter((l) => l.slug !== letter.slug && l.videoUrl).slice(0, 2);
-  const options = letter.videoUrl ? [letter, ...others].sort((a, b) => a.slug.localeCompare(b.slug)).map((l) => ({ slug: l.slug, videoUrl: l.videoUrl })) : [];
   const nav = "inline-flex size-12 items-center justify-center rounded-full border-[1.5px] border-line transition-colors hover:border-ink";
 
   return (
@@ -48,7 +43,13 @@ export default async function LetterPage({ params }: Params) {
           <VideoPlayer src={letter.videoUrl} label={`Буква ${letter.title} дактилем`} autoPlay source={letter.sourceUrl}
             className="lg:max-w-[min(100%,calc((100svh-420px)*16/9))]" />
         </div>
-        <LetterPractice letter={letter.title} slug={letter.slug} options={options} templates={templates} next={next && { slug: next.slug, title: next.title }} />
+        {/* Взрослым — ролики и выбор ответа (решение заказчика 2026-11-10): проверка — тестом группы, без подсказок.
+            Обводка и камера — в детском алфавите. */}
+        <aside className="grid content-start gap-4 rounded-md bg-surface p-5">
+          <h2 className="m-0 font-display text-2xl font-semibold tracking-[-0.02em]">Проверьте себя</h2>
+          <p className="m-0 text-ink-2">Тест по группе «{group.title}»: жест — буква и буква — жест.</p>
+          <ButtonLink href={`/alphabet/check/${group.slug}`} variant="primarySm" className="w-fit">Пройти тест <Arrow /></ButtonLink>
+        </aside>
       </div>
     </div>
   );

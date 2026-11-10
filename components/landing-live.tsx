@@ -98,7 +98,20 @@ export function Directions({ letter, adult, kids }: { letter: string; adult: Sig
           </div>
           {traced && <p className="anim-focus-in m-0 text-center font-semibold text-accent">Так же — все 33 буквы</p>}
         </div>
-        <DirectionFoot href="/alphabet" title="Алфавит" line="Видео букв, обводка, проверка камерой" />
+        {/* Два раздела (решение заказчика 2026-11-10): детский — в детском мире, взрослый — на платформе. */}
+        <div className="grid gap-3">
+          <div className="grid gap-1.5">
+            <span className="font-display text-[clamp(28px,2.6vw,36px)] leading-none font-semibold tracking-[-0.03em]">Алфавит</span>
+            <span className="text-ink-2">Детям — обводка и камера, взрослым — ролики и тест</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[["/kids/alphabet", "Детям"], ["/alphabet", "Взрослым"]].map(([href, label]) => (
+              <Link key={href} href={href} className="group press inline-flex min-h-11 items-center gap-2 rounded-full border-[1.5px] border-ink px-4 font-semibold hover:bg-ink hover:text-paper">
+                {label} <Arrow />
+              </Link>
+            ))}
+          </div>
+        </div>
       </li>
       <li className={`${panel} bg-linear-to-b from-stage to-stage-deep`}>
         {/* Как на первом экране: кадр под человека, вшитая подпись демо-ролика за кадром, управление под видео. */}
@@ -110,7 +123,7 @@ export function Directions({ letter, adult, kids }: { letter: string; adult: Sig
       </li>
       <li className={`${panel} bg-warn-soft`}>
         <KidsTaste sign={kids.sign} options={kids.options} />
-        <DirectionFoot href="/kids" title="Детям" line="Игры и альбом наклеек, 6–9 лет" />
+        <DirectionFoot href="/kids" title="Детям" line="Игры и альбом наклеек, 3–5 и 6–12 лет" />
       </li>
     </ul>
     {/* Точки — куда пролистано; нажатие ведёт к карточке. Цель нажатия 44 px, точка внутри маленькая. */}

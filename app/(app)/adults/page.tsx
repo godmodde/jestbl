@@ -11,10 +11,11 @@ export const metadata: Metadata = { title: "Взрослым" };
 // Направление «Взрослым» (ТЗ, п. 5): курс по порядку и библиотека категорий — по сферам, по типу, по алфавиту.
 export default async function AdultsPage() {
   const device = await currentDevice();
-  const [{ topics }, { categories, kinds }] = await Promise.all([getLearnHome(device), getLibrary(device)]);
+  const [{ topics }, { categories, kinds, all }] = await Promise.all([getLearnHome(device), getLibrary(device)]);
   const topic = topics.find((t) => t.status === "open") ?? topics[0];
   const later = topics.filter((t) => t.status === "soon");
-  const spheres = categories.filter((c) => c.slug !== "alfavit");
+  // Первая — «Все слова А–Я», дальше сферы жизни (сверка с заказчиком 2026-11-10): кому как удобнее учить.
+  const spheres = [all, ...categories.filter((c) => c.slug !== "alfavit")];
 
   return (
     <div className="grid gap-16 pt-4 md:gap-20">
@@ -50,11 +51,11 @@ export default async function AdultsPage() {
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
           <h2 id="library" className="m-0 font-display text-[28px] font-semibold tracking-[-0.02em]">Библиотека</h2>
           <nav aria-label="Как искать" className="flex flex-wrap gap-1 text-[15px]">
+            <Link href={`/adults/${all.slug}`} className="inline-flex min-h-11 items-center rounded-full px-4 font-medium hover:bg-track">А–Я</Link>
             <span aria-current="page" className="inline-flex min-h-11 items-center rounded-full bg-ink px-4 font-medium text-paper">По сферам</span>
             {kinds.slice(0, 3).map((k) => (
               <Link key={k.kind} href={`/dictionary?kind=${k.kind}`} className="inline-flex min-h-11 items-center rounded-full px-4 font-medium hover:bg-track">{KIND_TITLES[k.kind]}</Link>
             ))}
-            <Link href="/dictionary?sort=az" className="inline-flex min-h-11 items-center rounded-full px-4 font-medium hover:bg-track">А–Я</Link>
           </nav>
         </div>
         <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))] gap-5 p-0">

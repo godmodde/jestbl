@@ -3,7 +3,7 @@
 // «Как выполняется» и «Обратите внимание» описаны по кадрам видео (docs/research/howto-draft.json); у «Откуда» описание ненадёжное — не включено.
 // Видео — пути на surdo.media; они показываются только при DEMO_VIDEOS=surdo (локальный показ).
 // Алфавит — letters.mts, «Детям» — kids.mts, сферы жизни взрослых — spheres.mts; здесь всё собирается в общие списки.
-import { alphabetLessons, alphabetTopic, letterSigns } from "./letters.mts";
+import { alphabetLessons, alphabetTopic, kidsAlphabetLessons, kidsAlphabetTopics, letterSigns } from "./letters.mts";
 import { kidsLessons, kidsSigns, kidsTopics } from "./kids.mts";
 import { sphereCategories, sphereSigns } from "./spheres.mts";
 
@@ -46,6 +46,7 @@ export const topics = [
   { slug: "dialogi", title: "Диалоги и реальные ситуации", description: "Разговор в магазине, на работе, в гостях.", status: "soon", direction: "adults" },
   alphabetTopic,
   ...kidsTopics,
+  ...kidsAlphabetTopics,
 ] as const;
 
 export const lessons = [
@@ -59,6 +60,7 @@ export const lessons = [
     signs: ["slyshat", "zhestovyj-yazyk", "drug", "semya", "uchitsya", "rabota", "otkuda", "gorod"] },
   ...alphabetLessons,
   ...kidsLessons,
+  ...kidsAlphabetLessons,
 ];
 
 // Пары, где действительно есть смысл сравнить движения или значения (ТЗ, п. 18).

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { Arrow, ButtonLink, Icon } from "@/components/ui";
+import { Stars } from "@/components/kids-album";
+import { Arrow, ButtonLink } from "@/components/ui";
 import { getLearnHome } from "@/lib/data";
 import { currentDevice } from "@/lib/device-server";
 import { getAlphabet, getKids, getProgressExtras, type Status } from "@/lib/directions";
@@ -79,9 +80,7 @@ export default async function ProgressPage() {
                 <Link href={`/kids/${t.slug}`} className="underline-offset-4 hover:underline">{t.title}</Link>
                 <span className="flex items-center gap-4 tabular-nums">
                   <span className="text-ink-2">{t.stickers.filter((s) => s.earned).length} из {t.stickers.length}</span>
-                  <span aria-label={`${t.stars} из 3 звёзд`} className="flex text-star">
-                    {[1, 2, 3].map((n) => <Icon key={n} name={n <= t.stars ? "star-fill" : "star"} size={16} />)}
-                  </span>
+                  <Stars n={t.stars} size={16} />
                 </span>
               </li>
             ))}

@@ -167,8 +167,26 @@ test("экзамен по категории: случайные вопросы,
   await expect(page.locator("dl").getByRole("link", { name: "Семья" })).toBeVisible();
 });
 
+// Взрослым (сверка с заказчиком 2026-11-10): библиотека начинается со «Все слова А–Я», практика на скорость — минута и личный рекорд.
+test("взрослым: «Все слова А–Я» первой в библиотеке, на скорость — минута и рекорд", async ({ page }) => {
+  await page.clock.install();
+  await page.goto("/adults");
+  await expect(page.locator('section[aria-labelledby="library"] ul > li a').first()).toContainText("Все слова А–Я");
+  await page.getByRole("link", { name: /Все слова А–Я/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Все слова А–Я" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Буквы" })).toBeVisible();
+  await page.getByRole("link", { name: "На скорость" }).click();
+  await page.getByRole("button", { name: /Начать/ }).click();
+  await expect(page.getByRole("timer")).toBeVisible();
+  await page.getByRole("group", { name: "Варианты ответа" }).getByRole("button").first().click();
+  await page.clock.fastForward(61_000);
+  await expect(page.getByText(/за минуту/)).toBeVisible();
+  await expect(page.getByRole("button", { name: /Ещё раз/ })).toBeVisible();
+});
+
 test("детский мир: игра «Найди жест» дарит наклейку и открывает следующую игру", async ({ page }) => {
   await page.goto("/kids");
+  await page.getByRole("button", { name: /Дети/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Семья" })).toBeVisible();
   await page.getByRole("link", { name: /Играть: Найди жест/ }).click();
   const saved = page.waitForResponse((r) => r.url().endsWith("/lessons/semya-find/progress") && r.ok());
@@ -187,23 +205,106 @@ test("детский мир: игра «Найди жест» дарит нак�
   await expect(page.getByRole("link", { name: /Играть: Собери пару/ })).toBeVisible();
 });
 
-test("алфавит: буква — видео, обведение и проверка без камеры", async ({ page }) => {
+// Малыши 3–5 (сверка с заказчиком 2026-11-10): два варианта ответа, без «Найди отличие» и букв; экзамен — ступень 3 / 5 / 10 звёзд в копилку.
+async function answerRounds(page: Page, total: number) {
+  for (let round = 0; round < total; round++) {
+    await expect(page.getByRole("list", { name: `Шаг ${round + 1} из ${total}` })).toBeVisible();
+    const options = page.getByRole("button", { name: /^Это \d$/ }).or(page.locator('main button[aria-label]:not([aria-label="Медленнее"])'));
+    await expect(options).toHaveCount(2);
+    // Верный ответ — следующий шаг или итог; неверный — остаёмся и пробуем второй вариант.
+    const moved = round + 1 < total ? page.getByRole("list", { name: `Шаг ${round + 2} из ${total}` }) : page.getByRole("heading", { name: /Отлично|Хорошо|Получилось/ });
+    for (let n = 0; n < 2; n++) {
+      await options.nth(n).click();
+      await page.waitForTimeout(1200);
+      if (await moved.isVisible()) break;
+    }
+  }
+}
+
+test("малыши 3–5: два варианта, без «Найди отличие» и букв, экзамен — звёзды в копилку", async ({ page }) => {
+  await page.goto("/kids");
+  await page.getByRole("button", { name: /Малыши/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Семья" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Найди отличие/ })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Альбомы" })).toHaveCount(0);
+  await page.getByRole("link", { name: /Играть: Экзамен/ }).click();
+  const saved = page.waitForResponse((r) => r.url().endsWith("/api/v1/exams") && r.ok());
+  await answerRounds(page, 4);
+  await saved;
+  await expect(page.getByRole("img", { name: /^(3 звезды|5 звёзд|10 звёзд)$/ })).toBeVisible();
+  await page.getByRole("link", { name: /В альбом/ }).click();
+  await expect(page.getByLabel(/^В копилке (3 звезды|5 звёзд|10 звёзд)$/)).toBeVisible();
+});
+
+// Алфавит (решение заказчика 2026-11-10): взрослым — ролики и тест с выбором ответа, детям — обвести, найти букву, показать букву.
+
+test("алфавит взрослым: буква — видео, тест группы с итогом", async ({ page }) => {
   await page.goto("/alphabet");
   await page.getByRole("link", { name: /^Буква Б,/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: /Бб/ })).toBeVisible();
-  await expect(page.getByRole("img", { name: /Обведите букву Б/ })).toBeVisible();
-  await page.getByRole("tab", { name: "Проверить себя" }).click();
-  if (await page.getByRole("button", { name: "Без камеры" }).isVisible()) await page.getByRole("button", { name: "Без камеры" }).click();
-  for (const n of [1, 2, 3]) {
-    await page.getByRole("button", { name: `Вариант ${n}`, exact: true }).click();
-    if (await page.getByRole("button", { name: "Дальше" }).isVisible()) break;
-    await page.getByRole("button", { name: "Попробовать ещё раз" }).click();
+  await expect(page.getByRole("img", { name: /Обведите букву/ })).toHaveCount(0);
+  await page.getByRole("link", { name: /Пройти тест/ }).click();
+  await expect(page.getByText(/Вопрос 1 из \d+/)).toBeVisible();
+  const saved = page.waitForResponse((r) => r.url().endsWith("/api/v1/exams") && r.ok());
+  for (let i = 0; i < 12; i++) {
+    if (await page.getByText(/из \d+ верно/).isVisible()) break;
+    if (await page.getByRole("group", { name: "Варианты ответа" }).isVisible()) {
+      await page.getByRole("group", { name: "Варианты ответа" }).getByRole("button").first().click();
+    } else {
+      await page.getByRole("button", { name: "Вариант 1", exact: true }).click();
+    }
+    await page.getByRole("button", { name: /Дальше|Завершить/ }).click();
   }
-  const graded = page.waitForResponse((r) => r.url().endsWith("/bukva-b/review") && r.request().postDataJSON()?.grade === "good");
-  await page.getByRole("button", { name: "Дальше" }).click();
-  await graded;
-  await expect(page.getByText("Буква Б изучена")).toBeVisible();
-  await page.goto("/progress");
-  await expect(page.getByRole("link", { name: "Б", exact: true })).toHaveAttribute("title", "Изучена");
+  await expect(page.getByText(/из \d+ верно/)).toBeVisible();
+  await saved;
+});
+
+// Выбор буквы по жесту, пробуем по очереди. Неверная буква гаснет и остаётся погашенной, а верная через 0,9 с сменяется
+// следующим вопросом — поэтому «не погасла» значит «верно», даже если проверка опоздала к смене вопроса.
+async function answerLetters(page: Page) {
+  const total = Number((await page.getByRole("list", { name: /^Шаг 1 из \d+$/ }).getAttribute("aria-label"))!.split(" из ")[1]);
+  for (let round = 0; round < total; round++) {
+    await expect(page.getByRole("list", { name: `Шаг ${round + 1} из ${total}` })).toBeVisible();
+    const options = page.getByRole("group", { name: "Какая это буква?" }).getByRole("button");
+    for (let n = 0; n < 3; n++) {
+      await options.nth(n).click();
+      if (!(await options.nth(n).evaluate((el) => el.className.includes("opacity-60")))) break;
+    }
+  }
+}
+
+test("алфавит детям: обвести, найти букву, тест без камеры — звёзды и следующая группа", async ({ page }) => {
+  await page.goto("/kids/alphabet");
+  await page.getByRole("button", { name: /Дети/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "А — Е" })).toBeVisible();
+  const stationSaved = (slug: string) => page.waitForResponse((r) => r.url().endsWith(`/lessons/${slug}/progress`) && r.ok());
+  await page.getByRole("link", { name: "Играть: Обведи букву" }).click();
+  // Обводку можно пропустить — шесть букв, заглавная и строчная.
+  const traced = stationSaved("bukvy-a-e-trace");
+  for (let i = 0; i < 12; i++) await page.getByRole("button", { name: "Пропустить" }).click();
+  await expect(page.getByRole("heading", { name: "Готово!" })).toBeVisible();
+  await traced;
+  await page.getByRole("link", { name: /В альбом/ }).click();
+
+  await page.getByRole("link", { name: "Играть: Найди букву" }).click();
+  const chosen = stationSaved("bukvy-a-e-choose");
+  await answerLetters(page);
+  await expect(page.getByRole("heading", { name: "Готово!" })).toBeVisible();
+  await chosen;
+  await page.getByRole("link", { name: /В альбом/ }).click();
+
+  await page.getByRole("link", { name: "Играть: Покажи букву" }).click();
+  // С образцами формы руки тест начинается с камеры — в браузере без камеры переходим на выбор.
+  const noCamera = page.getByRole("button", { name: "Без камеры" });
+  await expect(noCamera.or(page.getByRole("group", { name: "Какая это буква?" }))).toBeVisible();
+  if (await noCamera.isVisible()) await noCamera.click();
+  const saved = page.waitForResponse((r) => r.url().endsWith("/api/v1/exams") && r.ok());
+  await answerLetters(page);
+  await saved;
+  // Буквы выбираются наугад: наклейки — только за верные с первой попытки, а звезда и следующая группа — всегда.
+  await expect(page.getByRole("heading", { name: /Отлично|Хорошо|Получилось/ })).toBeVisible();
+  await page.getByRole("link", { name: /В альбом/ }).click();
+  await expect(page.getByText(/из 6 наклеек/)).toBeVisible();
+  await expect(page.getByRole("link", { name: /Ё — Й/ })).toBeVisible();
 });
 

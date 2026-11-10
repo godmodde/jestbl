@@ -21,7 +21,13 @@ type Props = {
   onResult: (ok: boolean) => void;
   /** Камеры нет, доступ запрещён или пользователь сам выбрал проверку без камеры. */
   onNoCamera: () => void;
+  /** Включить камеру сразу, без кнопки: в тесте со второй буквы, когда доступ уже дан. */
+  autoStart?: boolean;
 };
+
+// Модель грузится один раз на страницу: в тесте камера включается заново на каждую букву.
+let shared: Promise<HandLandmarker> | null = null;
+const getHands = () => (shared ??= loadHands().catch((e) => { shared = null; throw e; }));
 
 async function loadHands() {
   const { FilesetResolver, HandLandmarker } = await import("@mediapipe/tasks-vision");
@@ -62,7 +68,7 @@ function drawPoints(canvas: HTMLCanvasElement, video: HTMLVideoElement, points: 
   }
 }
 
-export function CameraCheck({ letter, templates, onResult, onNoCamera }: Props) {
+export function CameraCheck({ letter, templates, onResult, onNoCamera, autoStart = false }: Props) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [problem, setProblem] = useState("");
   const video = useRef<HTMLVideoElement>(null);
@@ -85,8 +91,6 @@ export function CameraCheck({ letter, templates, onResult, onNoCamera }: Props) 
     return () => {
       alive.current = false;
       stopCamera();
-      hands.current?.close();
-      hands.current = null;
     };
   }, []);
 
@@ -98,9 +102,8 @@ export function CameraCheck({ letter, templates, onResult, onNoCamera }: Props) 
     try {
       setPhase("loading");
       if (!hands.current) {
-        const loaded = await loadHands();
-        if (!alive.current) return loaded.close();
-        hands.current = loaded;
+        hands.current = await getHands();
+        if (!alive.current) return;
       }
       setPhase("asking");
       const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
@@ -115,6 +118,13 @@ export function CameraCheck({ letter, templates, onResult, onNoCamera }: Props) 
       if (alive.current) block(problemText(e));
     }
   }
+
+  // Один раз при появлении — следующая буква теста.
+  useEffect(() => {
+    if (!autoStart) return;
+    const t = setTimeout(start);
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (phase !== "live") return;
@@ -187,9 +197,9 @@ export function CameraCheck({ letter, templates, onResult, onNoCamera }: Props) 
           {phase === "idle" && "Видео остаётся на вашем устройстве"}
           {phase === "loading" && "Загружаем распознавание жестов…"}
           {phase === "asking" && "Разрешите доступ к камере в окне браузера"}
-          {phase === "live" && `Покажите букву ${letter}`}
-          {phase === "done" && "Верно"}
-          {phase === "stuck" && "Не получается? Посмотрите видео ещё раз"}
+          {phase === "live" && `Покажи букву ${letter}`}
+          {phase === "done" && "Верно!"}
+          {phase === "stuck" && "Не получилось — попробуй ещё раз"}
           {phase === "blocked" && problem}
         </p>
         {phase === "idle" && <button type="button" onClick={start} className={btn.primary}>Включить камеру</button>}
