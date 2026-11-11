@@ -21,7 +21,7 @@ const toItem = (r: SignRow): Item => {
 export async function getAlphabet(device: string | null) {
   const [rows, checks] = await Promise.all([
     sql<(SignRow & { group_slug: string; group_title: string })[]>`
-      select ${signColumns}, l.slug as group_slug, l.title as group_title
+      select ${signColumns()}, l.slug as group_slug, l.title as group_title
       from topics t join lessons l on l.topic_id = t.id join lesson_signs ls on ls.lesson_id = l.id
       join signs s on s.id = ls.sign_id ${signJoins(device)}
       where t.direction = 'alphabet' order by l.position, ls.position`,
@@ -78,7 +78,7 @@ export async function getCategory(device: string | null, slug: string) {
   if (!category) return null;
   const inCategory = (id: ReturnType<typeof sql>) => (all ? sql`` : sql`and exists (select 1 from sign_categories x where x.sign_id = ${id} and x.category = ${slug})`);
   const [rows, similar, attempts, next] = await Promise.all([
-    sql<SignRow[]>`select ${signColumns} from signs s ${signJoins(device)}
+    sql<SignRow[]>`select ${signColumns()} from signs s ${signJoins(device)}
       where s.kind <> 'letter' ${inCategory(sql`s.id`)} order by s.sort_key`,
     sql<{ sign: string; other: string }[]>`
       select a.slug as sign, b.slug as other from sign_similar ss
@@ -176,7 +176,7 @@ export async function getKidsStation(device: string | null, topicSlug: string, s
   const topic = album?.topics.find((t) => t.slug === topicSlug);
   const station = topic?.stations.find((s) => s.slug === stationSlug);
   if (!topic || !station) return null;
-  const rows = await sql<SignRow[]>`select ${signColumns} from lessons l join lesson_signs ls on ls.lesson_id = l.id
+  const rows = await sql<SignRow[]>`select ${signColumns()} from lessons l join lesson_signs ls on ls.lesson_id = l.id
     join signs s on s.id = ls.sign_id ${signJoins(device)} where l.slug = ${stationSlug} order by ls.position`;
   const index = topic.stations.indexOf(station);
   return { world: album!.world, topic, station, index, signs: rows.map(toSign), next: topic.stations[index + 1] ?? null };

@@ -32,7 +32,8 @@ export type SignRow = {
   needs_review: boolean; favorite: boolean | null; learned_at: Date | null; due_at: Date | null;
 };
 
-export const signColumns = sql`s.kind, s.picture, s.slug, s.title, s.gloss, s.meaning, s.how_to, s.context, s.notice, s.category,
+// Функция, а не константа: фрагмент запроса создаётся при запросе — импорт модуля не требует базы (сборка на Vercel).
+export const signColumns = () => sql`s.kind, s.picture, s.slug, s.title, s.gloss, s.meaning, s.how_to, s.context, s.notice, s.category,
   c.title as category_title, s.video_url, s.source_url, s.needs_review, st.favorite, st.learned_at, st.due_at`;
 
 export const signJoins = (device: string | null) => sql`
@@ -66,7 +67,7 @@ export type DictionaryTab = "all" | "learned" | "favorites" | "review";
 export async function searchSigns(device: string | null, opts: { q?: string; category?: string; tab?: DictionaryTab; kind?: string; sort?: "az" }) {
   const q = opts.q?.trim().toLowerCase().replace(/[\\%_]/g, "\\$&");
   const rows = await sql<SignRow[]>`
-    select ${signColumns} from signs s ${signJoins(device)}
+    select ${signColumns()} from signs s ${signJoins(device)}
     where true
       ${q ? sql`and s.search like ${"%" + q + "%"} escape '\\'` : sql``}
       ${opts.category ? sql`and exists (select 1 from sign_categories sc where sc.sign_id = s.id and sc.category = ${opts.category})` : sql``}
@@ -80,7 +81,7 @@ export async function searchSigns(device: string | null, opts: { q?: string; cat
 }
 
 export async function getSign(device: string | null, slug: string) {
-  const [row] = await sql<SignRow[]>`select ${signColumns} from signs s ${signJoins(device)} where s.slug = ${slug}`;
+  const [row] = await sql<SignRow[]>`select ${signColumns()} from signs s ${signJoins(device)} where s.slug = ${slug}`;
   if (!row) return null;
   const [similar, lessons] = await Promise.all([
     sql<{ slug: string; title: string; note: string }[]>`
@@ -134,7 +135,7 @@ export async function getLesson(device: string | null, slug: string) {
   if (!lesson) return null;
 
   const [signRows, pool, similar, next] = await Promise.all([
-    sql<SignRow[]>`select ${signColumns} from lesson_signs ls join signs s on s.id = ls.sign_id ${signJoins(device)}
+    sql<SignRow[]>`select ${signColumns()} from lesson_signs ls join signs s on s.id = ls.sign_id ${signJoins(device)}
       where ls.lesson_id = ${lesson.id} order by ls.position`,
     sql<{ slug: string; title: string; video_url: string | null }[]>`
       select distinct s.slug, s.title, s.video_url from lessons l
@@ -169,7 +170,7 @@ export async function getLesson(device: string | null, slug: string) {
 
 export async function getReviewQueue(device: string | null) {
   if (!device) return [];
-  const rows = await sql<SignRow[]>`select ${signColumns} from signs s ${signJoins(device)}
+  const rows = await sql<SignRow[]>`select ${signColumns()} from signs s ${signJoins(device)}
     where st.due_at <= now() order by st.due_at limit 30`;
   return rows.map(toSign);
 }

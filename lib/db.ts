@@ -11,5 +11,13 @@ function connect() {
   return postgres(url, { max: 5, onnotice: () => {} });
 }
 
-export const sql = g.vidnoSql ?? connect();
-if (process.env.NODE_ENV !== "production") g.vidnoSql = sql;
+// Клиент создаётся при первом запросе, а не при импорте: сборка не падает на страницах, которым база не нужна
+// (Vercel собирал /_not-found и падал на отсутствующем DATABASE_URL).
+function db() {
+  if (!g.vidnoSql) g.vidnoSql = connect();
+  return g.vidnoSql;
+}
+type Call = (...args: unknown[]) => unknown;
+export const sql = Object.assign((...args: unknown[]) => (db() as unknown as Call)(...args), {
+  begin: (...args: unknown[]) => (db().begin as unknown as Call)(...args),
+}) as unknown as postgres.Sql;
