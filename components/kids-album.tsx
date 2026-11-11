@@ -16,8 +16,8 @@ const TILT = ["-rotate-6", "rotate-3", "-rotate-2", "rotate-6", "-rotate-3", "ro
 export function Stars({ n, size = 20, label = true }: { n: number; size?: number; label?: boolean }) {
   return (
     <span role={label ? "img" : undefined} aria-label={label ? `${n} ${plural(n, ["звезда", "звезды", "звёзд"])}` : undefined} aria-hidden={label ? undefined : true}
-      style={{ fontSize: size }} className={`inline-flex items-center gap-1 leading-none font-display font-semibold tabular-nums ${n ? "text-star" : "text-muted"}`}>
-      <Icon name={n ? "star-fill" : "star"} size={size} />{n}
+      style={{ fontSize: size }} className={`inline-flex items-center gap-1 leading-none font-display font-semibold tabular-nums ${n ? "text-star-ink" : "text-muted"}`}>
+      <span className={`inline-flex ${n ? "text-star" : ""}`}><Icon name={n ? "star-fill" : "star"} size={size} /></span>{n}
     </span>
   );
 }
@@ -45,6 +45,10 @@ export function StationIcon({ kind, size = 28 }: { kind: string; size?: number }
     trace: <><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="m13 7 4 4" /></>,
     choose: <><rect x="2.5" y="7" width="5.5" height="10" rx="1.5" /><rect x="9.25" y="7" width="5.5" height="10" rx="1.5" /><rect x="16" y="7" width="5.5" height="10" rx="1.5" /></>,
     show: <path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11M11 10V4.5a1.5 1.5 0 0 1 3 0V11M14 10.5V6a1.5 1.5 0 0 1 3 0v7c0 4-2.5 7-6 7-2.6 0-4.2-1.4-5.6-3.7L3.2 13a1.5 1.5 0 0 1 2.5-1.6L8 14" />,
+    balloons: <><path d="M12 3a6 6 0 0 1 6 6c0 4-3 7-6 7s-6-3-6-7a6 6 0 0 1 6-6z" /><path d="M12 16c0 2.5-2 3-1.5 5" /></>,
+    memory: <><rect x="3" y="4" width="8" height="12" rx="1.5" /><rect x="13" y="8" width="8" height="12" rx="1.5" /><path d="M7 8.5v.01M7 11v1.5M17 12.5v.01M17 15v1.5" /></>,
+    room: <><path d="M3 11.5 12 4l9 7.5" /><path d="M5.5 10v10h13V10" /><path d="M10 20v-5h4v5" /></>,
+    story: <><path d="M3 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H3z" /><path d="M21 5h-6a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h7z" /></>,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -63,7 +67,7 @@ export function LetterGlyph({ title, sticker = false, className = "" }: { title:
 }
 
 /** Два альбома детского мира — переключатель сверху: значок темы и «Аа» понятны без чтения. */
-function WorldSwitch({ world }: { world: KidsWorld }) {
+export function WorldSwitch({ world }: { world: KidsWorld }) {
   const tab = "inline-flex min-h-14 items-center gap-2.5 rounded-full px-5 font-semibold text-ink-2 transition-colors aria-[current=page]:bg-surface aria-[current=page]:text-ink aria-[current=page]:shadow-[0_8px_20px_-14px_rgba(29,28,26,0.5)]";
   return (
     <nav aria-label="Альбомы" className="flex w-fit gap-1 rounded-full bg-track p-1">

@@ -320,7 +320,7 @@ export function HeroCollage({ signs }: { signs: Sign[] }) {
         <div className="grid gap-2.5 sm:gap-3 lg:gap-5">
           <p className="anim-focus-in m-0 -mb-1 text-xs font-semibold tracking-[0.14em] lg:-mb-2.5 text-muted uppercase sm:text-[13px]">Русский жестовый язык</p>
           <h1 id="hero-title" className="m-0 font-display text-[34px] leading-[1.02] min-[400px]:text-[40px] font-semibold tracking-[-0.035em] sm:text-[clamp(44px,6.3vw,128px)] sm:leading-[0.94] lg:tracking-[-0.04em]">
-            {/* Строки наводятся в резкость по очереди — мотив «Видно». */}
+            {/* Строки наводятся в резкость по очереди — мотив бренда. */}
             <span className="lg:block"><span className="line-in [--d:.05s]">Начните</span></span>{" "}
             <span className="lg:block"><span className="line-in [--d:.15s]">с&nbsp;первого</span></span>{" "}
             <span className="type-gloss font-semibold text-muted lg:block"><span className="line-in [--d:.27s]">жеста</span></span>

@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CameraCheck } from "@/components/camera-check";
 import { LetterGlyph, StarBurst, StationIcon } from "@/components/kids-album";
+import { PlushText } from "@/components/plush";
 import { TraceCanvas } from "@/components/trace-canvas";
 import { Arrow, btn, Icon } from "@/components/ui";
 import { send } from "@/lib/client-api";
@@ -59,6 +60,7 @@ function KidVideo({ sign, label, offset = 0, replay = 0, children }: { sign: Kid
   }, [replay]);
   return (
     <div className="grid gap-2.5">
+      <div className="fluffy">
       <div className="relative aspect-[5/6] overflow-hidden rounded-[20px] bg-frame">
         {sign.videoUrl ? (
           <video ref={ref} src={sign.videoUrl} autoPlay muted loop playsInline aria-label={label}
@@ -73,6 +75,7 @@ function KidVideo({ sign, label, offset = 0, replay = 0, children }: { sign: Kid
             <span className="absolute top-3 left-3 grid size-12 place-content-center rounded-full bg-surface/90 text-accent"><Icon name="replay" size={24} /></span>
           </span>
         )}
+      </div>
       </div>
       <div className="flex items-center gap-2">
         {sign.videoUrl && (
@@ -106,7 +109,7 @@ function Hint({ text }: { text: string | null }) {
 function PictureButton({ sign, state, onClick, disabled }: { sign: KidSign; state: "idle" | "right" | "wrong" | "picked"; onClick: () => void; disabled?: boolean }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled} aria-label={sign.title}
-      className={`grid min-h-40 place-items-center gap-2 rounded-[22px] border-[2.5px] bg-surface p-4 transition-colors
+      className={`kid-card grid min-h-40 place-items-center gap-2 rounded-[22px] border-[2.5px] bg-surface p-4 transition-colors
         ${state === "right" ? "border-accent bg-accent-soft" : state === "wrong" ? "anim-nudge border-line opacity-60" : state === "picked" ? "border-ink bg-track" : "border-transparent hover:border-line"}`}>
       <img src={pic(sign)} alt="" width={112} height={112} className="sticker size-24 md:size-28" />
       <span className="text-[15px] font-medium text-ink-2">{sign.title}</span>
@@ -463,9 +466,214 @@ function ShowGame({ signs, rand, onFinish, templates }: Game) {
   );
 }
 
+
+// ── Новые игры для вариантов макета 2 и 3 (согласование 2026-11-10): «прям игровые», не тесты. ──
+// Каждая — на станции прежней механики с тем же навыком: прогресс и наклейки работают как раньше.
+
+const BALLOON = ["var(--plush-a, #A9CBEC)", "var(--plush-b, #EDB8CB)", "var(--plush-c, #C5B4E8)", "var(--plush-d, #F5DE8A)"];
+
+// Лопни шарики (вместо «Найди жест»): жест на видео — лопни шарик с той же картинкой. Шарики плывут вверх по кругу,
+// медленно и без таймера: по движущейся цели легко попасть, а мимо — шарик просто уплывёт и вернётся.
+function BalloonsGame({ signs, rand, onFinish, small }: Game) {
+  const list = useMemo(() => rounds(signs, rand, small ? 3 : 4, small), [signs, rand, small]);
+  const [at, setAt] = useState(0);
+  const [popped, setPopped] = useState<string | null>(null);
+  const { pick, state, missed, misses } = useChoice(() => { setPopped(null); if (at + 1 < list.length) setAt(at + 1); else onFinish(); });
+  const r = list[at];
+  return (
+    <div className="grid gap-8">
+      <Dots total={list.length} at={at} />
+      <div className="grid items-start gap-6 md:grid-cols-[minmax(0,340px)_minmax(0,1fr)] md:gap-10">
+        <div className="mx-auto w-full max-w-[190px] sm:max-w-[300px] md:max-w-none"><KidVideo key={at} sign={r.answer} label="Какой шарик лопнуть" replay={misses} /></div>
+        <div key={at} className="balloon-sky relative h-[clamp(340px,50svh,560px)] overflow-hidden rounded-[32px] bg-linear-to-b from-[#DCE7F6] to-[#F6F1F7] [container-type:size]">
+          <span aria-hidden="true" className="absolute top-[14%] left-[8%] h-10 w-28 rounded-full bg-white/80 blur-[2px]" />
+          <span aria-hidden="true" className="absolute top-[34%] right-[6%] h-8 w-24 rounded-full bg-white/70 blur-[2px]" />
+          {r.options.map((o, i) => {
+            const st = state(o.slug);
+            return (
+              <div key={o.slug} className="balloon absolute" style={{ left: `${((i + 0.5) * 100) / r.options.length}%`, "--dur": `${9 + i * 1.4}s`, "--delay": `${-(i * 3.1 + 1.5)}s` } as React.CSSProperties}>
+                <div className="balloon-sway grid -translate-x-1/2 justify-items-center">
+                  <button type="button" aria-label={o.title} disabled={popped !== null}
+                    onClick={() => { if (o.slug === r.answer.slug) setPopped(o.slug); void pick(o.slug, r.answer.slug); }}
+                    className={`grid size-[clamp(112px,13vw,150px)] place-items-center rounded-[50%_50%_47%_47%/56%_56%_44%_44%] shadow-[inset_-10px_-14px_24px_rgb(29_28_26/0.14),0_18px_30px_-18px_rgb(29_28_26/0.5)] ${popped === o.slug ? "balloon-pop" : st === "wrong" ? "anim-nudge opacity-60" : ""}`}
+                    style={{ background: `radial-gradient(circle at 32% 26%, rgb(255 255 255 / .75) 0 7%, transparent 8%), ${BALLOON[(at + i) % BALLOON.length]}` }}>
+                    <img src={pic(o)} alt="" width={84} height={84} className="size-[56%]" />
+                  </button>
+                  <svg width="22" height="74" viewBox="0 0 22 74" aria-hidden="true" className={popped === o.slug ? "opacity-0" : ""}>
+                    <path d="M8 0l3 6 3-6z" fill="currentColor" className="text-ink/30" />
+                    <path d="M11 6c-7 14 7 24 0 38s6 20 0 30" fill="none" stroke="#9A948A" strokeWidth="1.5" />
+                  </svg>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <Hint text={missed ? "Посмотри ещё раз на руки" : null} />
+    </div>
+  );
+}
+
+// Мемори (вместо «Собери пару»): карточки рубашкой вверх, пара — жест на видео и его картинка. Тренирует память на жест.
+function MemoryGame({ signs, rand, onFinish, small }: Game) {
+  const cards = useMemo(() => shuffle(shuffle(signs, rand).slice(0, small ? 2 : 3)
+    .flatMap((s) => [{ id: `${s.slug}-v`, sign: s, video: true }, { id: `${s.slug}-p`, sign: s, video: false }]), rand), [signs, rand, small]);
+  const [up, setUp] = useState<string[]>([]);
+  const [found, setFound] = useState<string[]>([]);
+  const [miss, setMiss] = useState(0);
+  async function flip(id: string) {
+    const card = cards.find((c) => c.id === id)!;
+    if (up.length === 2 || up.includes(id) || found.includes(card.sign.slug)) return;
+    const next = [...up, id];
+    setUp(next);
+    if (next.length < 2) return;
+    const [a, b] = next.map((x) => cards.find((c) => c.id === x)!);
+    if (a.sign.slug !== b.sign.slug) { setMiss((m) => m + 1); await wait(1500); setUp([]); return; }
+    await wait(450);
+    const done = [...found, a.sign.slug];
+    setFound(done); setUp([]);
+    if (done.length * 2 === cards.length) { await wait(CORRECT_PAUSE); onFinish(); }
+  }
+  return (
+    <div className="grid gap-8">
+      <ol aria-label={`Пар найдено: ${found.length} из ${cards.length / 2}`} className="m-0 flex list-none gap-1.5 p-0">
+        {Array.from({ length: cards.length / 2 }, (_, i) => <li key={i} className={`size-3 rounded-full transition-colors duration-300 ${i < found.length ? "bg-accent" : "bg-line"}`} />)}
+      </ol>
+      <div className={`mx-auto grid w-full gap-[clamp(10px,2vw,20px)] ${small ? "max-w-xl grid-cols-2" : "max-w-4xl grid-cols-2 sm:grid-cols-3"}`}>
+        {cards.map((c, i) => {
+          const isFound = found.includes(c.sign.slug);
+          const isUp = isFound || up.includes(c.id);
+          return (
+            <button key={c.id} type="button" onClick={() => flip(c.id)} data-open={isUp}
+              aria-label={!isUp ? `Карточка ${i + 1}` : `${c.video ? "Жест" : c.sign.title}${isFound ? ", пара найдена" : ""}`}
+              className="memory-card relative aspect-[5/6] w-full rounded-[24px] [perspective:1000px]">
+              <span aria-hidden="true" className="memory-face plush-pad absolute inset-0 grid place-content-center rounded-[24px] bg-accent-soft" style={{ "--pad": BALLOON[i % BALLOON.length] } as React.CSSProperties}>
+                <img src="/kids/friend.png" alt="" width={72} height={72} className="size-[clamp(48px,7vw,72px)] opacity-90" />
+              </span>
+              <span className={`memory-face memory-front kid-card absolute inset-0 grid place-items-center overflow-hidden rounded-[24px] border-[3px] bg-surface ${isFound ? "border-accent" : "border-transparent"}`}>
+                {c.video ? (
+                  isUp && (c.sign.videoUrl
+                    ? <video src={c.sign.videoUrl} autoPlay muted loop playsInline aria-hidden="true" className="absolute inset-0 h-full w-full signer" />
+                    : <span className="p-3 text-center text-sm text-ink-2">Видео появится после съёмки</span>)
+                ) : (
+                  <img src={pic(c.sign)} alt="" width={120} height={120} className="sticker size-[62%]" />
+                )}
+                {isFound && <span className="absolute top-2 right-2 grid size-8 place-content-center rounded-full bg-accent text-white"><Icon name="check" size={18} /></span>}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <Hint text={up.length === 2 && miss ? "Не пара — запомни, где что лежит" : found.length === 0 && up.length === 0 ? "Найди жест и его картинку" : null} />
+    </div>
+  );
+}
+
+// Найди в комнате (вместо «Накорми друга»): жест на видео — найди предмет среди игрушек в комнате. Жест в обстановке, а не в списке.
+const SLOTS = [
+  { x: 14, y: 27, s: 14, r: -8 }, { x: 37, y: 28, s: 12, r: 6 }, { x: 78, y: 30, s: 13, r: -4 },
+  { x: 18, y: 66, s: 17, r: 4 }, { x: 52, y: 70, s: 15, r: -6 }, { x: 84, y: 72, s: 15, r: 8 },
+];
+function RoomGame({ signs, rand, onFinish, small }: Game) {
+  // Одним вызовом: генератор общий, порядок вызовов должен совпасть на сервере и в браузере.
+  const { items, targets } = useMemo(() => {
+    const items = shuffle(signs, rand).slice(0, small ? 4 : 6);
+    return { items, targets: shuffle(items, rand).slice(0, small ? 3 : 4) };
+  }, [signs, rand, small]);
+  const slots = small ? [SLOTS[0], SLOTS[2], SLOTS[3], SLOTS[5]] : SLOTS;
+  const [at, setAt] = useState(0);
+  const [found, setFound] = useState<string[]>([]);
+  const { pick, state, missed, misses } = useChoice(() => { setFound((f) => [...f, targets[at].slug]); if (at + 1 < targets.length) setAt(at + 1); else onFinish(); });
+  const target = targets[at];
+  return (
+    <div className="grid gap-8">
+      <Dots total={targets.length} at={at} />
+      <div className="grid items-start gap-6 md:grid-cols-[minmax(0,320px)_minmax(0,1fr)] md:gap-10">
+        <div className="mx-auto w-full max-w-[190px] sm:max-w-[280px] md:max-w-none"><KidVideo key={at} sign={target} label="Что найти в комнате" replay={misses} /></div>
+        {/* Комната с игрушками: стена, окно, полка, ковёр, кресло — предметы стоят на своих местах. */}
+        <div className="relative aspect-square overflow-hidden rounded-[32px] bg-[var(--plush-base,#F3ECE4)] md:aspect-[4/3]">
+          <span aria-hidden="true" className="absolute inset-x-0 top-0 h-[58%] bg-[color-mix(in_oklab,var(--plush-c,#C5B4E8)_35%,white)]" />
+          <span aria-hidden="true" className="absolute top-[8%] right-[6%] h-[34%] w-[26%] rounded-[18px] border-[6px] border-white bg-linear-to-b from-[#CFE2F5] to-[#EEF4FB] shadow-[0_10px_20px_-14px_rgb(29_28_26/0.5)]">
+            <span className="absolute inset-y-0 left-1/2 w-1.5 -translate-x-1/2 bg-white" /><span className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 bg-white" />
+          </span>
+          <span aria-hidden="true" className="absolute top-[37%] left-[4%] h-3 w-[46%] rounded-full bg-[color-mix(in_oklab,var(--plush-spot,#5E2E6B)_30%,#C9B9A6)] shadow-[0_8px_12px_-6px_rgb(29_28_26/0.45)]" />
+          <span aria-hidden="true" className="absolute bottom-[6%] left-[22%] h-[22%] w-[56%] rounded-[50%] bg-[color-mix(in_oklab,var(--plush-b,#EDB8CB)_70%,white)]" />
+          <span aria-hidden="true" className="absolute right-[-6%] bottom-[8%] h-[30%] w-[26%] rounded-t-[60px] rounded-b-[20px] shadow-[inset_0_14px_0_rgb(255_255_255/0.25)] bg-[color-mix(in_oklab,var(--plush-a,#A9CBEC)_80%,#7d8aa8)]" />
+          {items.map((it, i) => {
+            const sl = slots[i];
+            const done = found.includes(it.slug);
+            const st = state(it.slug);
+            return (
+              <button key={it.slug} type="button" aria-label={it.title} disabled={done} onClick={() => pick(it.slug, target.slug)}
+                className={`absolute grid aspect-square -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full transition-transform hover:scale-110 ${st === "right" ? "anim-bump" : st === "wrong" ? "anim-nudge" : ""}`}
+                style={{ left: `${sl.x}%`, top: `${sl.y}%`, width: `max(60px, ${sl.s}%)`, rotate: `${sl.r}deg` }}>
+                <img src={pic(it)} alt="" width={96} height={96} className={`sticker h-auto w-full ${done ? "opacity-40" : ""}`} />
+                {(done || st === "right") && <span className="absolute -top-1 -right-1 grid size-8 place-content-center rounded-full bg-accent text-white"><Icon name="check" size={18} /></span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <Hint text={missed ? "Это не то — посмотри на руки ещё раз" : null} />
+    </div>
+  );
+}
+
+// История с другом (вместо «Пройди маршрут»): мишка идёт в гости; на каждой остановке он говорит жестом,
+// ребёнок даёт нужное — мишка кладёт это в рюкзак и шагает дальше. Серия с сюжетом.
+function StoryGame({ signs, rand, onFinish, small }: Game) {
+  const list = useMemo(() => rounds(signs, rand, small ? 3 : 4, small), [signs, rand, small]);
+  const [at, setAt] = useState(0);
+  const [bag, setBag] = useState<KidSign[]>([]);
+  const { pick, state, missed, misses } = useChoice(() => {
+    setBag((b) => [...b, list[at].answer]);
+    if (at + 1 < list.length) setAt(at + 1); else { setAt(list.length); void wait(1100).then(() => onFinish()); }
+  });
+  const r = list[Math.min(at, list.length - 1)];
+  const stop = (i: number) => 8 + (i * 80) / list.length;
+  return (
+    <div className="grid gap-8">
+      {/* Сцена: холмы, дорожка с остановками, домик друга в конце. */}
+      <div className="relative h-[clamp(150px,24vw,250px)] overflow-hidden rounded-[32px] bg-linear-to-b from-[#DCE7F6] to-[#F6F1F7]">
+        <span aria-hidden="true" className="absolute -bottom-[60%] -left-[10%] h-full w-[70%] rounded-[50%] bg-[color-mix(in_oklab,var(--plush-c,#C5B4E8)_45%,white)]" />
+        <span aria-hidden="true" className="absolute -right-[10%] -bottom-[55%] h-full w-[70%] rounded-[50%] bg-[color-mix(in_oklab,var(--plush-a,#A9CBEC)_50%,white)]" />
+        <span aria-hidden="true" className="absolute inset-x-[6%] bottom-[22%] h-2 rounded-full bg-white/80" />
+        {Array.from({ length: list.length }, (_, i) => (
+          <span key={i} aria-hidden="true" className={`absolute bottom-[22%] size-5 -translate-x-1/2 translate-y-1.5 rounded-full border-4 border-white ${i < bag.length ? "bg-accent" : "bg-[var(--plush-d,#F5DE8A)]"}`} style={{ left: `${stop(i)}%` }} />
+        ))}
+        <span aria-hidden="true" className="absolute right-[3%] bottom-[22%] h-[46%] w-[11%] min-w-14">
+          <span className="absolute inset-x-0 bottom-0 h-[60%] rounded-b-[10px] bg-[var(--plush-b,#EDB8CB)]" />
+          <span className="absolute inset-x-[-12%] top-0 h-[44%] bg-[var(--plush-spot,#5E2E6B)] [clip-path:polygon(50%_0,100%_100%,0_100%)]" />
+        </span>
+        <img key={bag.length} src="/kids/friend.png" alt="Мишка" width={120} height={120}
+          className={`story-walk sticker absolute bottom-[20%] w-[clamp(72px,10vw,110px)] -translate-x-1/2 ${missed ? "anim-nudge" : "anim-bump"}`} style={{ left: `${at >= list.length ? 90 : stop(at)}%` }} />
+        {bag.length > 0 && (
+          <ul aria-label="В рюкзаке" className="absolute top-3 left-3 m-0 flex list-none gap-1 rounded-full bg-white/80 p-1.5 pr-3">
+            {bag.map((b) => <li key={b.slug}><img src={pic(b)} alt={b.title} width={36} height={36} className="anim-pop size-9" /></li>)}
+          </ul>
+        )}
+      </div>
+      {at < list.length && (
+        <div key={at} className="grid items-start gap-6 md:grid-cols-[minmax(0,320px)_minmax(0,1fr)] md:gap-10">
+          {/* Видео — в облачке речи мишки: хвостик смотрит вверх, на сцену. */}
+          <div className="relative mx-auto w-full max-w-[190px] rounded-[28px] bg-surface p-2.5 sm:max-w-[300px] shadow-[0_18px_40px_-28px_rgb(29_28_26/0.55)] md:max-w-none">
+            <span aria-hidden="true" className="absolute -top-3 left-12 size-7 rotate-45 rounded-[6px] bg-surface" />
+            <KidVideo sign={r.answer} label="Что говорит мишка" replay={misses} />
+          </div>
+          <div className={`grid gap-3 ${cols(small)}`}>
+            {r.options.map((o) => <PictureButton key={o.slug} sign={o} state={state(o.slug)} onClick={() => pick(o.slug, r.answer.slug)} />)}
+          </div>
+        </div>
+      )}
+      <Hint text={missed ? "Мишка показал другое — посмотри ещё раз" : null} />
+    </div>
+  );
+}
+
 const GAMES: Record<string, (g: Game) => React.ReactNode> = {
   find: FindGame, pair: PairGame, feed: FeedGame, route: RouteGame, diff: DiffGame, exam: ExamGame,
   trace: TraceGame, choose: ChooseGame, show: ShowGame,
+  balloons: BalloonsGame, memory: MemoryGame, room: RoomGame, story: StoryGame,
 };
 
 export function KidsGame({ kind, title, signs, seed, topic, station, reward, templates = null, small = false }: {
@@ -508,8 +716,10 @@ export function KidsGame({ kind, title, signs, seed, topic, station, reward, tem
           <Icon name="back" /> {topic.title}
         </Link>
         <h1 className="m-0 flex items-center gap-3 font-display text-[clamp(26px,3vw,36px)] font-semibold tracking-[-0.02em]">
-          <span className="grid size-12 place-content-center rounded-full bg-accent-soft text-accent"><StationIcon kind={kind} /></span>
-          {title}
+          <span className="plush-pad grid size-12 place-content-center rounded-full bg-accent-soft text-accent">
+            <StationIcon kind={kind} />
+          </span>
+          <PlushText text={title} small />
         </h1>
       </header>
 

@@ -1,12 +1,28 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
+
 // Мелкие общие элементы: логотип, кнопки-ссылки, иконки. Кнопки ≥ 44 px (ТЗ, п. 28).
+
+/** Логотип pAv — меховые буквы заказчика: A с рожками выше строчных p и v. Только в детском мире. */
+export function PavMark({ size = 44 }: { size?: number }) {
+  const low = Math.round(size * 0.68);
+  /* eslint-disable @next/next/no-img-element -- три маленьких webp с прозрачностью заданного размера */
+  return (
+    <span aria-hidden="true" className="flex flex-none items-end">
+      <img src="/logo/p.webp" alt="" width={Math.round((low * 324) / 360)} height={low} />
+      <img src="/logo/a.webp" alt="" width={Math.round((size * 382) / 360)} height={size} className="-mb-px" />
+      <img src="/logo/v.webp" alt="" width={Math.round((low * 375) / 360)} height={low} />
+    </span>
+  );
+  /* eslint-enable @next/next/no-img-element */
+}
 
 export function Logo({ withTagline = true }: { withTagline?: boolean }) {
   return (
-    <Link href="/" className="flex flex-col items-start gap-1 sm:flex-row sm:items-baseline sm:gap-2.5" aria-label="Видно — школа русского жестового языка, на главную">
-      <span className="font-display text-2xl leading-none font-bold tracking-[-0.02em]">Видно</span>
+    <Link href="/" className="flex flex-col items-start gap-1 sm:flex-row sm:items-baseline sm:gap-2.5" aria-label="pAv — школа русского жестового языка, на главную">
+      {/* Меховой логотип — только в детском мире (заказчик 2026-11-11); здесь — строго, текстом. */}
+      <span className="font-display text-2xl leading-none font-bold tracking-[-0.02em]">pAv</span>
       {/* Расшифровка видна и на телефоне. На сайте её заменяет надзаголовок первого экрана, в платформе и подвале — она здесь. */}
       {withTagline && <span className="text-[11px] leading-none text-muted sm:text-[13px]">русский жестовый язык</span>}
     </Link>

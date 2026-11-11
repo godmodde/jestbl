@@ -20,6 +20,8 @@
   --color-warn-soft: #F3E9D7;
   /* Звёзды детских экзаменов — только для них. Контраст значка на бумаге 3,3:1. */
   --color-star: #B07A12;
+  /* Число рядом со звездой: в исходнике того же цвета, в вариантах 2–3 — тушью (звезда жёлтая, с ободком). */
+  --color-star-ink: #B07A12;
 
   --font-display: var(--font-geologica), system-ui, sans-serif;
   --font-sans: var(--font-onest), system-ui, sans-serif;
@@ -199,3 +201,81 @@ body:has(main.bands > section.bg-paper:first-child) > header { background: var(-
 /* Маленькие плитки выбора: у длинных слов («До свидания») титр шире — кадр плотнее (видимая полоса 0,46–0,82 ширины ролика). */
 .signer.signer-tight { object-position: 76% 50%; transform: scale(1.3); }
 
+
+
+/* ── Варианты макета (кнопка «Варианты», согласование 2026-11-10) ─────────────────────────────────────────────
+   1 — исходник. 2 «Мех» и 3 «Фетр» — предложения по референсам Леры: без зелёного, оранжевого и ядовитых цветов.
+   Взрослым — те же раскладки строже (меняется только акцент); детям — плюш: пушистые рамки видео, плюшевые буквы, 3D-кнопки. */
+
+/* Акцент 2 — синий, как шариковая ручка наброска Леры; контраст белого текста 9,6:1, на бумаге 8,6:1. */
+[data-v="2"] {
+  --color-accent: #2B3F94; --color-accent-strong: #22337A; --color-accent-soft: #E8EBF6;
+  --color-stage: #E9ECF6; --color-stage-deep: #DCE1F1;
+  --color-star: #F2C230; --color-star-ink: var(--color-ink); --star-rim: #8F6C00;
+  /* Детям — цвета логотипа pAv, без меха (заказчик 2026-11-11: «пока вместо пушистых — цветные»). */
+  --plush-a: #45A5E5; --plush-b: #C8286A; --plush-c: #9A6ADB; --plush-d: #FFD23F; --plush-base: #F7F2EA; --plush-spot: #2B3F94;
+  /* Буквы заголовков: голубой и сиреневый темнее, вместо жёлтого — синий акцент (на бумаге не ниже 3:1). */
+  --plush-ink-a: #2C86C8; --plush-ink-c: #7B4FC4; --plush-ink-d: #2B3F94;
+  /* Значки: белые на малиновом и сиреневом, тушью на голубом и жёлтом. */
+  --plush-fg-b: #fff; --plush-fg-c: #fff;
+  --plush: none; --plush-text: none; --plush-text-sm: none;
+}
+/* Акцент 3 — слива; контраст белого текста 10,7:1. */
+[data-v="3"] {
+  --color-accent: #5E2E6B; --color-accent-strong: #4B2456; --color-accent-soft: #F1E8F2;
+  --color-stage: #F2EAF1; --color-stage-deep: #E7DAE5;
+  --color-star: #F2C230; --color-star-ink: var(--color-ink); --star-rim: #8F6C00;
+  --plush-a: #E8B9C8; --plush-b: #AFCBE6; --plush-c: #CDB8DC; --plush-d: #F1DE9C; --plush-base: #F3ECE4; --plush-spot: #5E2E6B;
+  /* Плюш (заказчик 2026-11-11: «3 вариант сделай плюшевым») — мех вместо фетра. Буквы заголовков темнее пастели: на бумаге не ниже 3:1. */
+  --plush-ink-a: #CF6A90; --plush-ink-b: #4A8FCB; --plush-ink-c: #9873C6; --plush-ink-d: #A0648F;
+  --plush: url(#fur); --plush-text: url(#fur-t); --plush-text-sm: url(#fur-m);
+}
+/* Жёлтая звезда на бумаге держится ободком (3:1 с фоном), число — тушью. */
+:is([data-v="2"], [data-v="3"]) .text-star svg { stroke: var(--star-rim); stroke-width: 1.4; }
+
+/* Позиционирование плюша — в слое компонентов: классы absolute/fixed на месте его перебивают. */
+@layer components {
+  .fluffy, .plush-pad { position: relative; isolation: isolate; }
+}
+/* Пушистая рамка видео: мех или фетр — отдельным слоем под кадром, сам кадр фильтр не трогает. */
+:is([data-v="2"], [data-v="3"]) .fluffy { padding: 14px; }
+:is([data-v="2"], [data-v="3"]) .fluffy::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 36px;
+  background: var(--fluff, var(--plush-a)); filter: var(--plush);
+}
+:is([data-v="2"], [data-v="3"]) .fluffy > * { box-shadow: inset 0 2px 12px rgb(29 28 26 / .28); border-radius: 22px; }
+
+/* Плюшевая кнопка-подушка: игры, стрелки, выбор. Слой с фильтром — под содержимым. */
+:is([data-v="2"], [data-v="3"]) .plush-pad::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background: var(--pad, var(--plush-a)); filter: var(--plush);
+}
+:is([data-v="2"], [data-v="3"]) .plush-pad { background: transparent; border-color: transparent; }
+
+/* Плюшевые буквы заголовков детского мира. */
+:is([data-v="2"], [data-v="3"]) .plush-text { font-family: var(--font-plush), var(--font-display); font-weight: 900; letter-spacing: .01em; filter: var(--plush-text); }
+/* Заголовки до ~40 px — ворс короче, иначе буквы теряют форму. */
+:is([data-v="2"], [data-v="3"]) .plush-text.plush-sm { filter: var(--plush-text-sm); }
+:is([data-v="2"], [data-v="3"]) .plush-text > span:nth-child(4n+1) { color: var(--plush-ink-a, var(--plush-a)); }
+:is([data-v="2"], [data-v="3"]) .plush-text > span:nth-child(4n+2) { color: var(--plush-ink-b, var(--plush-b)); }
+:is([data-v="2"], [data-v="3"]) .plush-text > span:nth-child(4n+3) { color: var(--plush-ink-c, var(--plush-c)); }
+:is([data-v="2"], [data-v="3"]) .plush-text > span:nth-child(4n+4) { color: var(--plush-ink-d, var(--plush-d)); }
+
+
+/* Шарики: всплывают снизу вверх по кругу, медленно — по движущейся цели легко попасть. */
+@media (prefers-reduced-motion: no-preference) {
+  .balloon { top: 100%; animation: balloon-rise var(--dur, 9s) linear var(--delay, 0s) infinite both; }
+  .balloon > .balloon-sway { animation: balloon-sway 3.2s ease-in-out infinite alternate; }
+  .balloon-pop { animation: balloon-pop .45s var(--ease-out-soft) forwards; }
+  .memory-card { transition: rotate .45s cubic-bezier(.2, .8, .2, 1); }
+  .story-walk { transition: left .9s cubic-bezier(.4, 0, .2, 1); }
+}
+/* Без анимации шарики висят в небе на месте; с анимацией — поднимаются от нижнего края неба за верхний (cqh — высота неба). */
+:where(.balloon) { top: 22%; }
+@keyframes balloon-rise { from { translate: 0 0; } to { translate: 0 calc(-100cqh - 100%); } }
+@keyframes balloon-sway { from { rotate: -5deg; } to { rotate: 5deg; } }
+@keyframes balloon-pop { 40% { scale: 1.25; opacity: 1; } to { scale: 1.6; opacity: 0; } }
+.memory-card { transform-style: preserve-3d; }
+.memory-card[data-open="true"] { rotate: y 180deg; }
+.memory-face { backface-visibility: hidden; }
+.memory-front { rotate: y 180deg; }

@@ -15,7 +15,8 @@ test("первый урок: найти, пересмотреть видео, р
   // 1. Найти и открыть первый урок
   await page.goto("/");
   await page.getByRole("link", { name: /Начать первый урок/ }).first().click();
-  await expect(page).toHaveURL(/\/learn\/zdorovaemsya$/);
+  // Dev-сервер собирает страницу урока по запросу: переход занимает до нескольких секунд.
+  await expect(page).toHaveURL(/\/learn\/zdorovaemsya$/, { timeout: 15_000 });
   await expect(page.getByRole("heading", { level: 1, name: "Здороваемся" })).toBeVisible();
 
   // 2. Понять, как пересмотреть видео
@@ -308,3 +309,28 @@ test("алфавит детям: обвести, найти букву, тест
   await expect(page.getByRole("link", { name: /Ё — Й/ })).toBeVisible();
 });
 
+
+// Варианты макета (согласование 2026-11-10): кнопка слева снизу; в 2 и 3 — детский альбом по наброску Леры и новые игры.
+test("варианты макета: «Цвет» — альбом по наброску, «Найди в комнате» до итога", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/kids");
+  await page.getByRole("button", { name: /Дети/ }).click();
+  await expect(page.getByRole("link", { name: /Играть: Найди жест/ })).toBeVisible();
+  await page.getByRole("button", { name: "Варианты" }).click();
+  await page.getByRole("dialog", { name: "Варианты макета" }).getByRole("button", { name: /Цвет/ }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-v", "2");
+  await expect(page.getByRole("link", { name: /Играть: Лопни шарики/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("link", { name: /Играть: Найди в комнате/ }).click();
+  for (let round = 0; round < 4; round++) {
+    await expect(page.getByRole("list", { name: `Шаг ${round + 1} из 4` })).toBeVisible();
+    const items = page.locator('main button[aria-label]:not([aria-label="Медленнее"]):not([disabled])');
+    const moved = round < 3 ? page.getByRole("list", { name: `Шаг ${round + 2} из 4` }) : page.getByRole("link", { name: /В альбом/ });
+    for (let n = 0, count = await items.count(); n < count; n++) {
+      await items.nth(n).click();
+      await page.waitForTimeout(1100);
+      if (await moved.isVisible()) break;
+    }
+  }
+  await expect(page.getByRole("link", { name: /В альбом/ })).toBeVisible();
+});

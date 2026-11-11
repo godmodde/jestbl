@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { KidsAlbum } from "@/components/kids-album";
-import { currentAge, currentDevice } from "@/lib/device-server";
+import { KidsBoard } from "@/components/kids-board";
+import { currentAge, currentDevice, currentVariant } from "@/lib/device-server";
 import { getKidsAlbum } from "@/lib/directions";
 
 type Props = { params: Promise<{ topic: string }>; searchParams: Promise<{ new?: string }> };
@@ -22,6 +23,7 @@ export default async function KidsTopicPage({ params, searchParams }: Props) {
   if (!album || !topic) notFound();
   if (small && album.world !== "kids") redirect("/kids");
   if (!topic.open) redirect(album.world === "kids" ? "/kids" : "/kids/alphabet");
-  return <KidsAlbum topics={album.topics} current={topic.slug} world={album.world} small={small}
-    fresh={topic.stickers.some((s) => s.slug === fresh && s.earned) ? fresh : undefined} />;
+  const props = { topics: album.topics, current: topic.slug, world: album.world, small, fresh: topic.stickers.some((s) => s.slug === fresh && s.earned) ? fresh : undefined };
+  const v = await currentVariant();
+  return v === 1 ? <KidsAlbum {...props} /> : <KidsBoard {...props} v={v} />;
 }

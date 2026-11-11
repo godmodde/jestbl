@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { AgeChip, AgePicker } from "@/components/kids-age";
-import { Icon } from "@/components/ui";
+import { Icon, PavMark } from "@/components/ui";
 import { currentAge, currentDevice } from "@/lib/device-server";
 import { getStarBank } from "@/lib/directions";
 import { plural } from "@/lib/plural";
@@ -14,15 +14,15 @@ export default async function KidsLayout({ children }: { children: React.ReactNo
   return (
     <>
       <header className="shell flex min-h-[76px] items-center justify-between gap-3 max-md:min-h-[64px] sm:gap-6">
-        <Link href="/kids" className="flex items-baseline gap-2.5" aria-label="Детский альбом">
-          <span className="font-display text-2xl leading-none font-bold tracking-[-0.02em]">Видно</span>
+        <Link href="/kids" className="flex items-end gap-2.5" aria-label="Детский альбом">
+          <PavMark />
           <span className="rounded-full bg-track px-2.5 py-1 text-[13px] leading-none font-semibold text-ink max-sm:hidden">Детям</span>
         </Link>
         <div className="flex items-center gap-1 sm:gap-2">
           {age && (
             <>
-              <span aria-label={`В копилке ${bank} ${plural(bank, ["звезда", "звезды", "звёзд"])}`} className="inline-flex min-h-14 items-center gap-1.5 px-2 font-display text-xl font-semibold text-star tabular-nums">
-                <Icon name="star-fill" size={22} />{bank}
+              <span aria-label={`В копилке ${bank} ${plural(bank, ["звезда", "звезды", "звёзд"])}`} className="inline-flex min-h-14 items-center gap-1.5 px-2 font-display text-xl font-semibold text-star-ink tabular-nums">
+                <span className="inline-flex text-star"><Icon name="star-fill" size={22} /></span>{bank}
               </span>
               <AgeChip age={age} />
             </>
