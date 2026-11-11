@@ -16,6 +16,7 @@
     "dactyl:templates": "node --env-file-if-exists=.env.local scripts/dactyl-templates.mts"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.16",
     "@mediapipe/tasks-vision": "1.0.1",
     "next": "16.2.12",
     "postgres": "^3.4.9",

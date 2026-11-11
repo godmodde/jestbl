@@ -2,13 +2,15 @@ import "server-only";
 
 import postgres from "postgres";
 
+import { demoSql } from "@/lib/db-demo";
+
 // Один пул на процесс: в dev Next перезагружает модули, поэтому пул держим в globalThis.
 const g = globalThis as unknown as { vidnoSql?: postgres.Sql };
 
 function connect() {
   const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL не задан — скопируйте .env.example в .env.local");
-  return postgres(url, { max: 5, onnotice: () => {} });
+  // Без DATABASE_URL — встроенная база в памяти (lib/db-demo.ts): сайт показывается и без подключённого Postgres.
+  return url ? postgres(url, { max: 5, onnotice: () => {} }) : demoSql();
 }
 
 // Клиент создаётся при первом запросе, а не при импорте: сборка не падает на страницах, которым база не нужна
